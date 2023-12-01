@@ -28,7 +28,7 @@ class Potential {
       load_model(model_file);
 
       auto options = torch::TensorOptions().dtype(torch::kFloat32).requires_grad(true);
-      input_tensor = torch::zeros({1,(long int) dim}, options);
+      input_tensor = torch::zeros({(long int) dim}, options);
     }
     double value(vector<double> & x);
     void gradient(vector<double> & x, vector<double>& grad);
@@ -52,14 +52,14 @@ double Potential::value(vector<double>& x)
 {
   {
     torch::NoGradGuard no_grad;
-    input_tensor[0][0] = x[0];
-    input_tensor[0][1] = x[1];
+    input_tensor[0] = x[0];
+    input_tensor[1] = x[1];
   }
 
   std::vector<torch::jit::IValue> inputs={input_tensor};
 
   // evaluate the value of function
-  nn_outputs = nn.forward(inputs).toTensor()[0];
+  nn_outputs = nn.forward(inputs).toTensor();
 
   return nn_outputs.item<double>() ;
 }
@@ -68,16 +68,16 @@ void Potential::gradient(vector<double>& x, vector<double>& grad)
 {
   {
     torch::NoGradGuard no_grad;
-    input_tensor[0][0] = x[0];
-    input_tensor[0][1] = x[1];
+    input_tensor[0] = x[0];
+    input_tensor[1] = x[1];
   }
 
   std::vector<torch::jit::IValue> inputs={input_tensor};
 
   // evaluate the value of function
-  nn_outputs = nn.forward(inputs).toTensor()[0];
+  nn_outputs = nn.forward(inputs).toTensor();
 
-  input_grad = torch::autograd::grad({nn_outputs}, {input_tensor})[0][0];
+  input_grad = torch::autograd::grad({nn_outputs}, {input_tensor})[0];
 
   for (int i=0; i < dim; i ++)
     grad[i] = input_grad[i].item<double>();
