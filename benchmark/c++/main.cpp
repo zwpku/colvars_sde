@@ -53,8 +53,7 @@ void generate_traj(vector<double> & x0, double beta, double delta_t, int N, int 
 
 int main()
 {
-  vector<double> x0;
-  x0.resize(2);
+  vector<double> x0(2);
   x0[0] = -1.0; x0[1] = 0.0;
 
   double beta = 1.0, delta_t = 0.01;
