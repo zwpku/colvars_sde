@@ -17,5 +17,5 @@ main.o: src/main.cpp
 	g++ -c $< -pedantic -I$(COLVARS_SRC_DIR)
 
 $(COLVARS_LIB):
-	EXTRACOLVARSFLAGS="$(EXTRACOLVARSFLAGS)" make -C $(COLVARS_SRC_DIR) libcolvars.a 
+	EXTRACOLVARSFLAGS="$(EXTRACOLVARSFLAGS)" make -C $(COLVARS_SRC_DIR) libcolvars.a -j4
 
