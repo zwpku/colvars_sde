@@ -1,5 +1,6 @@
 COLVARS_LIB = ./colvars/src/libcolvars.a
 COLVARS_SRC_DIR = ./colvars/src
+MAIN_LIB = ./src/main.o
 
 CXXFLAGS := -std=c++11 -pedantic -g -O2 -fPIC
 
@@ -10,11 +11,11 @@ EXTRALINKLIBS = -Wl,-rpath,$(TORCHDIR)/lib -L$(TORCHDIR)/lib -ltorch -ltorch_cpu
 
 default: main
 
-main: 	main.o $(COLVARS_LIB) 
+main: 	$(MAIN_LIB) $(COLVARS_LIB) 
 	g++ -o $@ $<  $(COLVARS_LIB) $(EXTRALINKLIBS)
 
-main.o: src/main.cpp
-	g++ -c $< -pedantic -I$(COLVARS_SRC_DIR)
+$(MAIN_LIB): ./src/main.cpp
+	make -C ./src main.o
 
 $(COLVARS_LIB):
 	EXTRACOLVARSFLAGS="$(EXTRACOLVARSFLAGS)" make -C $(COLVARS_SRC_DIR) libcolvars.a -j4

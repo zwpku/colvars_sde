@@ -1,0 +1,27 @@
+colvarsTrajFrequency    10000
+colvarsRestartFrequency 10000
+
+colvar {
+  name d
+  lowerBoundary -8.0
+  upperBoundary 1.8
+  width 0.2
+  extendedLagrangian on
+  extendedFluctuation 0.1
+  extendedTimeConstant 200
+
+  distance {
+    group1 { 
+      atomnumbers 5
+    }
+    group2 { 
+      atomnumbers 7
+    }
+  }
+}
+
+abf {
+  colvars d
+  fullSamples	1000
+}
+

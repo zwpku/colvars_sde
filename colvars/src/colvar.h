@@ -589,61 +589,12 @@ public:
 
   // scalar colvar components
   class distance;
-  class distance_z;
-  class distance_xy;
-  class polar_theta;
-  class polar_phi;
-  class distance_inv;
-  class distance_pairs;
-  class dipole_magnitude;
-  class angle;
-  class dipole_angle;
-  class dihedral;
-  class coordnum;
-  class selfcoordnum;
-  class groupcoordnum;
-  class h_bond;
-  class rmsd;
-  class orientation_angle;
-  class orientation_proj;
-  class tilt;
-  class spin_angle;
-  class gyration;
-  class inertia;
-  class inertia_z;
-  class eigenvector;
-  class alpha_dihedrals;
-  class alpha_angles;
-  class dihedPC;
-  class alch_lambda;
-  class alch_Flambda;
-  class componentDisabled;
-  class CartesianBasedPath;
-  class aspath;
-  class azpath;
-  class gspath;
-  class gzpath;
   class linearCombination;
-  class CVBasedPath;
-  class gspathCV;
-  class gzpathCV;
-  class aspathCV;
-  class azpathCV;
-  class euler_phi;
-  class euler_psi;
-  class euler_theta;
-  class neuralNetwork;
   class torchANN;
-  class customColvar;
+  class componentDisabled;
 
   // non-scalar components
-  class distance_vec;
-  class distance_dir;
   class cartesian;
-  class orientation;
-
-  // components that do not handle any atoms directly
-  class map_total;
 
   /// A global mapping of cvc names to the cvc constructors
   static const std::map<std::string, std::function<colvar::cvc *(const std::string &subcv_conf)>> &

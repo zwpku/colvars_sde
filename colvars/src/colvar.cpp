@@ -839,67 +839,13 @@ void colvar::define_component_types()
   colvarproxy *proxy = cvm::main()->proxy;
 
   add_component_type<distance>("distance", "distance");
-  add_component_type<distance_vec>("distance vector", "distanceVec");
   add_component_type<cartesian>("Cartesian coordinates", "cartesian");
-  add_component_type<distance_dir>("distance vector direction", "distanceDir");
-  add_component_type<distance_z>("distance projection on an axis", "distanceZ");
-  add_component_type<distance_xy>("distance projection on a plane", "distanceXY");
-  add_component_type<polar_theta>("spherical polar angle theta", "polarTheta");
-  add_component_type<polar_phi>("spherical azimuthal angle phi", "polarPhi");
-  add_component_type<distance_inv>("average distance weighted by inverse power", "distanceInv");
-  add_component_type<distance_pairs>("N1xN2-long vector of pairwise distances", "distancePairs");
-  add_component_type<dipole_magnitude>("dipole magnitude", "dipoleMagnitude");
-  add_component_type<coordnum>("coordination number", "coordNum");
-  add_component_type<selfcoordnum>("self-coordination number", "selfCoordNum");
-  add_component_type<groupcoordnum>("group-coordination number", "groupCoord");
-  add_component_type<angle>("angle", "angle");
-  add_component_type<dipole_angle>("dipole angle", "dipoleAngle");
-  add_component_type<dihedral>("dihedral", "dihedral");
-  add_component_type<h_bond>("hydrogen bond", "hBond");
 
-  if (proxy->check_atom_name_selections_available() == COLVARS_OK) {
-    add_component_type<alpha_angles>("alpha helix", "alpha");
-    add_component_type<dihedPC>("dihedral principal component", "dihedralPC");
-  }
-
-  add_component_type<orientation>("orientation", "orientation");
-  add_component_type<orientation_angle>("orientation angle", "orientationAngle");
-  add_component_type<orientation_proj>("orientation projection", "orientationProj");
-  add_component_type<tilt>("tilt", "tilt");
-  add_component_type<spin_angle>("spin angle", "spinAngle");
-  add_component_type<rmsd>("RMSD", "rmsd");
-  add_component_type<gyration>("radius of gyration", "gyration");
-  add_component_type<inertia>("moment of inertia", "inertia");
-  add_component_type<inertia_z>("moment of inertia around an axis", "inertiaZ");
-  add_component_type<eigenvector>("eigenvector", "eigenvector");
-  add_component_type<alch_lambda>("alchemical coupling parameter", "alchLambda");
-  add_component_type<alch_Flambda>("force on alchemical coupling parameter", "alchFLambda");
-  add_component_type<aspath>("arithmetic path collective variables (s)", "aspath");
-  add_component_type<azpath>("arithmetic path collective variables (z)", "azpath");
-  add_component_type<gspath>("geometrical path collective variables (s)", "gspath");
-  add_component_type<gzpath>("geometrical path collective variables (z)", "gzpath");
   add_component_type<linearCombination>("linear combination of other collective variables", "linearCombination");
-  add_component_type<gspathCV>("geometrical path collective variables (s) for other CVs", "gspathCV");
-  add_component_type<gzpathCV>("geometrical path collective variables (z) for other CVs", "gzpathCV");
-  add_component_type<aspathCV>("arithmetic path collective variables (s) for other CVs", "aspathCV");
-  add_component_type<azpathCV>("arithmetic path collective variables (s) for other CVs", "azpathCV");
-  add_component_type<euler_phi>("euler phi angle of the optimal orientation", "eulerPhi");
-  add_component_type<euler_psi>("euler psi angle of the optimal orientation", "eulerPsi");
-  add_component_type<euler_theta>("euler theta angle of the optimal orientation", "eulerTheta");
-
-#ifdef LEPTON
-  add_component_type<customColvar>("CV with support of the Lepton custom function", "customColvar");
-#endif
-
-  add_component_type<neuralNetwork>("neural network CV for other CVs", "neuralNetwork");
 
 #ifdef TORCH
   add_component_type<torchANN>("CV defined by PyTorch artifical neural network models", "torchANN");
 #endif
-
-  if (proxy->check_volmaps_available() == COLVARS_OK) {
-    add_component_type<map_total>("total value of atomic map", "mapTotal");
-  }
 }
 
 
