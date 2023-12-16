@@ -25,9 +25,6 @@ void colvarproxy_sde::init(t_inputrec *ir, int64_t step,
   first_timestep = true;
   restart_frequency_s = 0;
 
-  // User-scripted forces are not available 
-  have_scripts = false;
-
   angstrom_value_ = 1.0;
 
   // Get the thermostat temperature.

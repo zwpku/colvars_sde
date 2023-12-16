@@ -429,15 +429,6 @@ bool colvarparse::get_keyval(std::string const &conf,
 
 bool colvarparse::get_keyval(std::string const &conf,
                              char const *key,
-                             cvm::quaternion &value,
-                             cvm::quaternion const &def_value,
-                             Parse_Mode const parse_mode)
-{
-  return _get_keyval_scalar_<cvm::quaternion>(conf, key, value, def_value, parse_mode);
-}
-
-bool colvarparse::get_keyval(std::string const &conf,
-                             char const *key,
                              colvarvalue &value,
                              colvarvalue const &def_value,
                              Parse_Mode const parse_mode)
@@ -509,15 +500,6 @@ bool colvarparse::get_keyval(std::string const &conf,
                              Parse_Mode const parse_mode)
 {
   return _get_keyval_vector_<cvm::rvector>(conf, key, values, def_values, parse_mode);
-}
-
-bool colvarparse::get_keyval(std::string const &conf,
-                             char const *key,
-                             std::vector<cvm::quaternion> &values,
-                             std::vector<cvm::quaternion> const &def_values,
-                             Parse_Mode const parse_mode)
-{
-  return _get_keyval_vector_<cvm::quaternion>(conf, key, values, def_values, parse_mode);
 }
 
 bool colvarparse::get_keyval(std::string const &conf,

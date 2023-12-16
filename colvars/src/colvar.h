@@ -20,10 +20,6 @@
 #include "colvarparse.h"
 #include "colvardeps.h"
 
-#ifdef LEPTON
-#include "Lepton.h" // for runtime custom expressions
-#endif
-
 /// \brief A collective variable (main class); to be defined, it needs
 /// at least one object of a derived class of colvar::cvc; it
 /// calculates and returns a \link colvarvalue \endlink object
@@ -255,9 +251,6 @@ public:
 
   /// Parse the CVC configuration and allocate their data
   int init_components(std::string const &conf);
-
-  /// Parse parameters for custom function with Lepton
-  int init_custom_function(std::string const &conf);
 
   /// Init defaults for grid options
   int init_grid_parameters(std::string const &conf);
@@ -589,7 +582,6 @@ public:
 
   // scalar colvar components
   class distance;
-  class linearCombination;
   class torchANN;
   class componentDisabled;
 
@@ -624,21 +616,6 @@ protected:
   /// Current cvc values in the order requested by script
   /// when using scriptedFunction
   std::vector<const colvarvalue *> sorted_cvc_values;
-
-#ifdef LEPTON
-  /// Vector of evaluators for custom functions using Lepton
-  std::vector<Lepton::CompiledExpression *> value_evaluators;
-
-  /// Vector of evaluators for gradients of custom functions
-  std::vector<Lepton::CompiledExpression *> gradient_evaluators;
-
-  /// Vector of references to cvc values to be passed to Lepton evaluators
-  std::vector<double *> value_eval_var_refs;
-  std::vector<double *> grad_eval_var_refs;
-
-  /// Unused value that is written to when a variable simplifies out of a Lepton expression
-  double dev_null;
-#endif
 
   /// A global mapping of cvc names to the cvc constructors
   static std::map<std::string, std::function<colvar::cvc *(const std::string &conf)>>

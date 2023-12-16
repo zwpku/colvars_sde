@@ -144,11 +144,6 @@ public:
                   Parse_Mode const parse_mode = parse_normal);
   bool get_keyval(std::string const &conf,
                   char const *key,
-                  cvm::quaternion &value,
-                  cvm::quaternion const &def_value = cvm::quaternion(),
-                  Parse_Mode const parse_mode = parse_normal);
-  bool get_keyval(std::string const &conf,
-                  char const *key,
                   colvarvalue &value,
                   colvarvalue const &def_value = colvarvalue(colvarvalue::type_notset),
                   Parse_Mode const parse_mode = parse_normal);
@@ -186,11 +181,6 @@ public:
                   char const *key,
                   std::vector<cvm::rvector> &values,
                   std::vector<cvm::rvector> const &def_values = std::vector<cvm::rvector>(0, cvm::rvector()),
-                  Parse_Mode const parse_mode = parse_normal);
-  bool get_keyval(std::string const &conf,
-                  char const *key,
-                  std::vector<cvm::quaternion> &values,
-                  std::vector<cvm::quaternion> const &def_values = std::vector<cvm::quaternion>(0, cvm::quaternion()),
                   Parse_Mode const parse_mode = parse_normal);
   bool get_keyval(std::string const &conf,
                   char const *key,

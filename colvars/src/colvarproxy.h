@@ -14,8 +14,6 @@
 #include "colvartypes.h"
 #include "colvarproxy_io.h"
 #include "colvarproxy_system.h"
-#include "colvarproxy_tcl.h"
-#include "colvarproxy_volmaps.h"
 
 /// \file colvarproxy.h
 /// \brief Colvars proxy classes
@@ -31,9 +29,6 @@
 /// colvarproxy_lammps, \endlink, \link colvarproxy_namd, \endlink, \link
 /// colvarproxy_vmd \endlink.
 
-
-// forward declarations
-class colvarscript;
 
 
 /// \brief Container of atomic data for processing by Colvars
@@ -487,9 +482,6 @@ public:
   /// Distribute calculation of biases across threads
   virtual int smp_biases_loop();
 
-  /// Distribute calculation of biases across threads 2nd through last, with all scripted biased on 1st thread
-  virtual int smp_biases_script_loop();
-
   /// Index of this thread
   virtual int smp_thread_id();
 
@@ -544,39 +536,6 @@ public:
 };
 
 
-/// Methods for scripting language interface (Tcl or Python)
-class colvarproxy_script {
-
-public:
-
-  /// Constructor
-  colvarproxy_script();
-
-  /// Destructor
-  virtual ~colvarproxy_script();
-
-  /// Pointer to the scripting interface object
-  /// (does not need to be allocated in a new interface)
-  colvarscript *script;
-
-  /// Do we have a scripting interface?
-  bool have_scripts;
-
-  /// Run a user-defined colvar forces script
-  virtual int run_force_callback();
-
-  virtual int run_colvar_callback(
-                std::string const &name,
-                std::vector<const colvarvalue *> const &cvcs,
-                colvarvalue &value);
-
-  virtual int run_colvar_gradient_callback(
-                std::string const &name,
-                std::vector<const colvarvalue *> const &cvcs,
-                std::vector<cvm::matrix2d<cvm::real> > &gradient);
-};
-
-
 
 /// Interface between Colvars and MD engine (GROMACS, LAMMPS, NAMD, VMD...)
 ///
@@ -585,11 +544,8 @@ class colvarproxy
   : public colvarproxy_system,
     public colvarproxy_atoms,
     public colvarproxy_atom_groups,
-    public colvarproxy_volmaps,
     public colvarproxy_smp,
     public colvarproxy_replicas,
-    public colvarproxy_script,
-    public colvarproxy_tcl,
     public colvarproxy_io
 {
 

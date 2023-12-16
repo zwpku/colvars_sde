@@ -324,18 +324,8 @@ public:
     f_cv_runave,
     /// \brief Compute time correlation function
     f_cv_corrfunc,
-    /// \brief Value and gradient computed by user script
-    f_cv_scripted,
-    /// \brief Value and gradient computed by user function through Lepton
-    f_cv_custom_function,
     /// \brief Colvar is periodic
     f_cv_periodic,
-    /// \brief The colvar has only one component
-    f_cv_single_cvc,
-    /// \brief is scalar
-    f_cv_scalar,
-    f_cv_linear,
-    f_cv_homogeneous,
     /// \brief multiple timestep through time_step_factor
     f_cv_multiple_ts,
     /// \brief Number of colvar features
@@ -345,8 +335,6 @@ public:
   enum features_cvc {
     /// Computation of this CVC is enabled
     f_cvc_active,
-    /// This CVC computes a scalar value
-    f_cvc_scalar,
     /// Values of this CVC lie in a periodic interval
     f_cvc_periodic,
     /// This CVC provides a default value for the colvar's width

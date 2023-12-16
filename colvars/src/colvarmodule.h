@@ -176,9 +176,6 @@ public:
   // Forward declarations
   class rvector;
   template <class T> class vector1d;
-  template <class T> class matrix2d;
-  class quaternion;
-  class rotation;
 
   class usage;
   class memory_stream;
@@ -189,9 +186,6 @@ public:
   /// \brief Atom position (different type name from rvector, to make
   /// possible future PBC-transparent implementations)
   typedef rvector atom_pos;
-
-  /// \brief 3x3 matrix of real numbers
-  class rmatrix;
 
   // allow these classes to access protected data
   class atom;
@@ -370,9 +364,6 @@ public:
   /// Parse and initialize collective variables
   int parse_colvars(std::string const &conf);
 
-  /// Run provided Tcl script
-  int run_tcl_script(std::string const &filename);
-
   /// Parse and initialize collective variable biases
   int parse_biases(std::string const &conf);
 
@@ -400,9 +391,6 @@ private:
   /// Test error condition and keyword parsing
   /// on error, delete new bias
   bool check_new_bias(std::string &conf, char const *key);
-
-  /// Initialization Tcl script, user-provided
-  std::string source_Tcl_script;
 
 public:
 
@@ -594,19 +582,11 @@ public:
                             size_t width = 0, size_t prec = 0);
 
   /// Convert to string for output purposes
-  static std::string to_str(quaternion const &x,
-                            size_t width = 0, size_t prec = 0);
-
-  /// Convert to string for output purposes
   static std::string to_str(colvarvalue const &x,
                             size_t width = 0, size_t prec = 0);
 
   /// Convert to string for output purposes
   static std::string to_str(vector1d<real> const &x,
-                            size_t width = 0, size_t prec = 0);
-
-  /// Convert to string for output purposes
-  static std::string to_str(matrix2d<real> const &x,
                             size_t width = 0, size_t prec = 0);
 
 
@@ -628,10 +608,6 @@ public:
 
   /// Convert to string for output purposes
   static std::string to_str(std::vector<rvector> const &x,
-                            size_t width = 0, size_t prec = 0);
-
-  /// Convert to string for output purposes
-  static std::string to_str(std::vector<quaternion> const &x,
                             size_t width = 0, size_t prec = 0);
 
   /// Convert to string for output purposes
@@ -839,20 +815,6 @@ public:
 
   /// Decrease the depth (number of indentations in the output)
   static void decrease_depth();
-
-  static inline bool scripted_forces()
-  {
-    return use_scripted_forces;
-  }
-
-  /// Use scripted colvars forces?
-  static bool use_scripted_forces;
-
-  /// Wait for all biases before calculating scripted forces?
-  static bool scripting_after_biases;
-
-  /// Calculate the energy and forces of scripted biases
-  int calc_scripted_forces();
 
   /// \brief Pointer to the proxy object, used to retrieve atomic data
   /// from the hosting program; it is static in order to be accessible

@@ -198,7 +198,6 @@ public:
   int add_atom_numbers_range(std::string const &range_conf);
   int add_atom_name_residue_range(std::string const &psf_segid,
                                   std::string const &range_conf);
-  int parse_fitting_options(std::string const &group_conf);
 
   /// \brief Add an atom object to this group
   int add_atom(cvm::atom const &a);
@@ -327,28 +326,10 @@ public:
   /// If yes, returns 1-based number of a common atom; else, returns 0
   static int overlap(const atom_group &g1, const atom_group &g2);
 
-  /// The rotation calculated automatically if f_ag_rotate is defined
-  cvm::rotation rot;
-
-  /// Rotation derivative;
-  rotation_derivative<cvm::atom, cvm::atom_pos>* rot_deriv;
-
-  /// \brief Indicates that the user has explicitly set centerToReference or
-  /// rotateReference, and the corresponding reference:
-  /// cvc's (eg rmsd, eigenvector) will not override the user's choice
-  bool b_user_defined_fit;
-
-  /// \brief use reference coordinates for f_ag_center or f_ag_rotate
-  std::vector<cvm::atom_pos> ref_pos;
-
   /// \brief Center of geometry of the reference coordinates; regardless
   /// of whether f_ag_center is true, ref_pos is centered to zero at
   /// initialization, and ref_pos_cog serves to center the positions
   cvm::atom_pos              ref_pos_cog;
-
-  /// \brief If f_ag_center or f_ag_rotate is true, use this group to
-  /// define the transformation (default: this group itself)
-  atom_group                *fitting_group;
 
   /// Total mass of the atom group
   cvm::real total_mass;
@@ -372,20 +353,6 @@ public:
   /// \brief (Re)calculate the optimal roto-translation
   void calc_apply_roto_translation();
 
-  void setup_rotation_derivative();
-
-  /// \brief Save aside the center of geometry of the reference positions,
-  /// then subtract it from them
-  ///
-  /// In this way it will be possible to use ref_pos also for the
-  /// rotational fit.
-  /// This is called either by atom_group::parse or by CVCs that assign
-  /// reference positions (eg. RMSD, eigenvector).
-  void center_ref_pos();
-
-  /// \brief Move all positions
-  void apply_translation(cvm::rvector const &t);
-
   /// \brief Get the current velocities; this must be called always
   /// *after* read_positions(); if f_ag_rotate is defined, the same
   /// rotation applied to the coordinates will be used
@@ -401,8 +368,6 @@ public:
   {
     for (cvm::atom_iter ai = atoms.begin(); ai != atoms.end(); ai++)
       ai->reset_data();
-    if (fitting_group)
-      fitting_group->reset_atoms_data();
   }
 
   /// \brief Recompute all mutable quantities that are required to compute CVCs

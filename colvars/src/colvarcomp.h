@@ -24,7 +24,6 @@
 #include "colvarmodule.h"
 #include "colvaratoms.h"
 #include "colvar.h"
-#include "colvar_geometricpath.h"
 
 #ifdef TORCH
 #include <torch/torch.h>
@@ -377,26 +376,6 @@ public:
                                   colvarvalue const &x2) const;
 };
 
-// \brief Colvar component: flat vector of Cartesian coordinates
-// Mostly useful to compute scripted colvar values
-class colvar::cartesian
-  : public colvar::cvc
-{
-protected:
-  /// Atom group
-  cvm::atom_group  *atoms;
-  /// Which Cartesian coordinates to include
-  std::vector<size_t> axes;
-public:
-  cartesian(std::string const &conf);
-  cartesian();
-  virtual ~cartesian() {}
-  virtual void calc_value();
-  virtual void calc_gradients();
-  virtual void apply_force(colvarvalue const &force);
-};
-
-
 class colvar::componentDisabled
   : public colvar::cvc
 {
@@ -412,29 +391,10 @@ public:
 
 
 
-/// Current only linear combination of sub-CVCs is available
-class colvar::linearCombination
-  : public colvar::cvc
-{
-protected:
-    /// Sub-colvar components
-    std::vector<colvar::cvc*> cv;
-    /// If all sub-cvs use explicit gradients then we also use it
-    bool use_explicit_gradients;
-protected:
-    cvm::real getPolynomialFactorOfCVGradient(size_t i_cv) const;
-public:
-    linearCombination(std::string const &conf);
-    virtual ~linearCombination();
-    virtual void calc_value();
-    virtual void calc_gradients();
-    virtual void apply_force(colvarvalue const &force);
-};
-
 #ifdef TORCH
 // only when LibTorch is available
 class colvar::torchANN
-  : public colvar::linearCombination
+  : public colvar::cvc
 {
 protected:
     torch::jit::script::Module nn;

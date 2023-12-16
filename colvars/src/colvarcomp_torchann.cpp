@@ -15,7 +15,7 @@
 #include "colvarparse.h"
 #include "colvarcomp.h"
 
-colvar::torchANN::torchANN(std::string const &conf): linearCombination(conf) {
+colvar::torchANN::torchANN(std::string const &conf): cvc(conf) {
   set_function_type("torchANN");
 
   x.type(colvarvalue::type_scalar);
@@ -60,30 +60,6 @@ colvar::torchANN::torchANN(std::string const &conf): linearCombination(conf) {
   // initialize the input tensor 
   auto options = torch::TensorOptions().dtype(torch::kFloat32).requires_grad(true);
   
-  /*
-  if (use_gpu) {
-    if (torch::cuda::is_available()) {
-      try {
-	nn.to(torch::kCUDA);
-      } catch(const std::exception & e) {
-	cvm::error("Failed to move model to GPU.");
-	use_gpu = false;
-      }
-    } else {
-      use_gpu = false;
-      cvm::log("GPU not available.");
-    }
-  }
-
-  if (use_gpu) {
-    options = options.device(torch::kCUDA);
-    if (use_double_input) {
-      cvm::log("Data type reset to Float for GPU computation!");
-      use_double_input = false;
-    }
-  } 
-  */
-
   if (use_double_input) {  // set type to double
     options = options.dtype(torch::kFloat64);
     nn.to(torch::kFloat64);

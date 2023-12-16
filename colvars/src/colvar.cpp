@@ -38,10 +38,6 @@ colvar::colvar()
   kinetic_energy = 0.0;
   potential_energy = 0.0;
 
-#ifdef LEPTON
-  dev_null = 0.0;
-#endif
-
   matching_state = false;
 
   expand_boundaries = false;
@@ -91,184 +87,15 @@ int colvar::init(std::string const &conf)
 
   size_t i;
 
-#ifdef LEPTON
-  error_code |= init_custom_function(conf);
-  if (error_code != COLVARS_OK) {
-    return cvm::get_error();
-  }
-#endif
-
-  // Setup colvar as scripted function of components
-  if (get_keyval(conf, "scriptedFunction", scripted_function,
-    "", colvarparse::parse_silent)) {
-
-    enable(f_cv_scripted);
-    cvm::log("This colvar uses scripted function \"" + scripted_function + "\".\n");
-    cvm::main()->cite_feature("Scripted functions (Tcl)");
-
-    std::string type_str;
-    get_keyval(conf, "scriptedFunctionType", type_str, "scalar");
-
-    x.type(colvarvalue::type_notset);
-    int t;
-    for (t = 0; t < colvarvalue::type_all; t++) {
-      if (type_str == colvarvalue::type_keyword(colvarvalue::Type(t))) {
-        x.type(colvarvalue::Type(t));
-        break;
-      }
-    }
-    if (x.type() == colvarvalue::type_notset) {
-      cvm::error("Could not parse scripted colvar type.", COLVARS_INPUT_ERROR);
-      return COLVARS_INPUT_ERROR;
-    }
-
-    cvm::log(std::string("Expecting colvar value of type ")
-      + colvarvalue::type_desc(x.type()));
-
-    if (x.type() == colvarvalue::type_vector) {
-      int size;
-      if (!get_keyval(conf, "scriptedFunctionVectorSize", size)) {
-        cvm::error("Error: no size specified for vector scripted function.",
-                   COLVARS_INPUT_ERROR);
-        return COLVARS_INPUT_ERROR;
-      }
-      x.vector1d_value.resize(size);
-    }
-
-    x_reported.type(x);
-
-    // Sort array of cvcs based on their names
-    // Note: default CVC names are in input order for same type of CVC
-    std::sort(cvcs.begin(), cvcs.end(), colvar::compare_cvc);
-
-    if(cvcs.size() > 1) {
-      cvm::log("Sorted list of components for this scripted colvar:\n");
-      for (i = 0; i < cvcs.size(); i++) {
-        cvm::log(cvm::to_str(i+1) + " " + cvcs[i]->name);
-      }
-    }
-
-    // Build ordered list of component values that will be
-    // passed to the script
-    for (i = 0; i < cvcs.size(); i++) {
-      sorted_cvc_values.push_back(&(cvcs[i]->value()));
-    }
-  }
-
-  if (!(is_enabled(f_cv_scripted) || is_enabled(f_cv_custom_function))) {
-    colvarvalue const &cvc_value = (cvcs[0])->value();
-    if (cvm::debug())
-      cvm::log ("This collective variable is a "+
-                colvarvalue::type_desc(cvc_value.type())+
-                ((cvc_value.size() > 1) ? " with "+
-                 cvm::to_str(cvc_value.size())+" individual components.\n" :
-                 ".\n"));
-    x.type(cvc_value);
-    x_reported.type(cvc_value);
-  }
-
-  set_enabled(f_cv_scalar, (value().type() == colvarvalue::type_scalar));
-
-  // If using scripted biases, any colvar may receive bias forces
-  // and will need its gradient
-  if (cvm::scripted_forces()) {
-    enable(f_cv_gradient);
-  }
-
-  // check for linear combinations
-  {
-    bool lin = !(is_enabled(f_cv_scripted) || is_enabled(f_cv_custom_function));
-    for (i = 0; i < cvcs.size(); i++) {
-
-  //     FIXME this is a reverse dependency, ie. cv feature depends on cvc flag
-  //     need to clarify this case
-  //     if ((cvcs[i])->b_debug_gradients)
-  //       enable(task_gradients);
-
-      if ((cvcs[i])->sup_np != 1) {
-        if (cvm::debug() && lin)
-          cvm::log("Warning: You are using a non-linear polynomial "
-                    "combination to define this collective variable, "
-                    "some biasing methods may be unavailable.\n");
-        lin = false;
-
-        if ((cvcs[i])->sup_np < 0) {
-          cvm::log("Warning: you chose a negative exponent in the combination; "
-                    "if you apply forces, the simulation may become unstable "
-                    "when the component \""+
-                    (cvcs[i])->function_type+"\" approaches zero.\n");
-        }
-      }
-    }
-    set_enabled(f_cv_linear, lin);
-  }
-
-  // Colvar is homogeneous if:
-  // - it is linear (hence not scripted)
-  // - all cvcs have coefficient 1 or -1
-  // i.e. sum or difference of cvcs
-  {
-    bool homogeneous = is_enabled(f_cv_linear);
-    for (i = 0; i < cvcs.size(); i++) {
-      if (cvm::fabs(cvm::fabs(cvcs[i]->sup_coeff) - 1.0) > 1.0e-10) {
-        homogeneous = false;
-      }
-    }
-    set_enabled(f_cv_homogeneous, homogeneous);
-  }
-
-  // A single-component variable almost concides with its CVC object
-  if ((cvcs.size() == 1) && is_enabled(f_cv_homogeneous)) {
-    if ( !is_enabled(f_cv_scripted) && !is_enabled(f_cv_custom_function) &&
-         (cvm::fabs(cvcs[0]->sup_coeff - 1.0) < 1.0e-10) &&
-         (cvcs[0]->sup_np == 1) ) {
-      enable(f_cv_single_cvc);
-    }
-  }
-
-  // Colvar is deemed periodic if:
-  // - it is homogeneous
-  // - all cvcs are periodic
-  // - all cvcs have the same period
-  if (is_enabled(f_cv_homogeneous) && cvcs[0]->is_enabled(f_cvc_periodic)) {
-    bool b_periodic = true;
-    period = cvcs[0]->period;
-    wrap_center = cvcs[0]->wrap_center;
-    for (i = 1; i < cvcs.size(); i++) {
-      if (!cvcs[i]->is_enabled(f_cvc_periodic) || cvcs[i]->period != period) {
-        b_periodic = false;
-        period = 0.0;
-        cvm::log("Warning: although one component is periodic, this colvar will "
-                 "not be treated as periodic, either because the exponent is not "
-                 "1, or because components of different periodicity are defined.  "
-                 "Make sure that you know what you are doing!");
-      }
-    }
-    set_enabled(f_cv_periodic, b_periodic);
-  }
-
-  // Allow scripted/custom functions to be defined as periodic
-  if ( (is_enabled(f_cv_scripted) || is_enabled(f_cv_custom_function)) && is_enabled(f_cv_scalar) ) {
-    if (get_keyval(conf, "period", period, 0.)) {
-      enable(f_cv_periodic);
-      get_keyval(conf, "wrapAround", wrap_center, 0.);
-    }
-  }
-
-  // check that cvcs are compatible
-
-  for (i = 0; i < cvcs.size(); i++) {
-
-    // components may have different types only for scripted functions
-    if (!(is_enabled(f_cv_scripted) || is_enabled(f_cv_custom_function)) && (colvarvalue::check_types(cvcs[i]->value(),
-                                                                cvcs[0]->value())) ) {
-      cvm::error("ERROR: you are defining this collective variable "
-                 "by using components of different types. "
-                 "You must use the same type in order to "
-                 "sum them together.\n", COLVARS_INPUT_ERROR);
-      return COLVARS_INPUT_ERROR;
-    }
-  }
+  colvarvalue const &cvc_value = (cvcs[0])->value();
+  if (cvm::debug())
+    cvm::log ("This collective variable is a "+
+	      colvarvalue::type_desc(cvc_value.type())+
+	      ((cvc_value.size() > 1) ? " with "+
+	       cvm::to_str(cvc_value.size())+" individual components.\n" :
+	       ".\n"));
+  x.type(cvc_value);
+  x_reported.type(cvc_value);
 
   active_cvc_square_norm = 0.;
   for (i = 0; i < cvcs.size(); i++) {
@@ -303,7 +130,7 @@ int colvar::init(std::string const &conf)
   error_code |= init_grid_parameters(conf);
 
   // Detect if we have a single component that is an alchemical lambda
-  if (is_enabled(f_cv_single_cvc) && cvcs[0]->function_type == "alchLambda") {
+  if (cvcs[0]->function_type == "alchLambda") {
     enable(f_cv_external);
   }
 
@@ -322,169 +149,6 @@ int colvar::init(std::string const &conf)
 }
 
 
-#ifdef LEPTON
-int colvar::init_custom_function(std::string const &conf)
-{
-  std::string expr, expr_in; // expr_in is a buffer to remember expr after unsuccessful parsing
-  std::vector<Lepton::ParsedExpression> pexprs;
-  Lepton::ParsedExpression pexpr;
-  size_t pos = 0; // current position in config string
-  double *ref;
-
-  if (!key_lookup(conf, "customFunction", &expr_in, &pos)) {
-    return COLVARS_OK;
-  }
-
-  cvm::main()->cite_feature("Custom functions (Lepton)");
-
-  enable(f_cv_custom_function);
-  cvm::log("This colvar uses a custom function.\n");
-
-  do {
-    expr = expr_in;
-    if (cvm::debug())
-      cvm::log("Parsing expression \"" + expr + "\".\n");
-    try {
-      pexpr = Lepton::Parser::parse(expr);
-      pexprs.push_back(pexpr);
-    }
-    catch (...) {
-      cvm::error("Error parsing expression \"" + expr + "\".\n", COLVARS_INPUT_ERROR);
-      return COLVARS_INPUT_ERROR;
-    }
-
-    try {
-      value_evaluators.push_back(
-          new Lepton::CompiledExpression(pexpr.createCompiledExpression()));
-      // Define variables for cvc values
-      // Stored in order: expr1, cvc1, cvc2, expr2, cvc1...
-      for (size_t i = 0; i < cvcs.size(); i++) {
-        for (size_t j = 0; j < cvcs[i]->value().size(); j++) {
-          std::string vn = cvcs[i]->name +
-              (cvcs[i]->value().size() > 1 ? cvm::to_str(j+1) : "");
-          try {
-            ref =&value_evaluators.back()->getVariableReference(vn);
-          }
-          catch (...) { // Variable is absent from expression
-            // To keep the same workflow, we use a pointer to a double here
-            // that will receive CVC values - even though none was allocated by Lepton
-            ref = &dev_null;
-            cvm::log("Warning: Variable " + vn + " is absent from expression \"" + expr + "\".\n");
-          }
-          value_eval_var_refs.push_back(ref);
-        }
-      }
-    }
-    catch (...) {
-      cvm::error("Error compiling expression \"" + expr + "\".\n", COLVARS_INPUT_ERROR);
-      return COLVARS_INPUT_ERROR;
-    }
-  } while (key_lookup(conf, "customFunction", &expr_in, &pos));
-
-
-  // Now define derivative with respect to each scalar sub-component
-  for (size_t i = 0; i < cvcs.size(); i++) {
-    for (size_t j = 0; j < cvcs[i]->value().size(); j++) {
-      std::string vn = cvcs[i]->name +
-          (cvcs[i]->value().size() > 1 ? cvm::to_str(j+1) : "");
-      // Element ordering: we want the
-      // gradient vector of derivatives of all elements of the colvar
-      // wrt to a given element of a cvc ([i][j])
-      for (size_t c = 0; c < pexprs.size(); c++) {
-        gradient_evaluators.push_back(
-            new Lepton::CompiledExpression(pexprs[c].differentiate(vn).createCompiledExpression()));
-        // and record the refs to each variable in those expressions
-        for (size_t k = 0; k < cvcs.size(); k++) {
-          for (size_t l = 0; l < cvcs[k]->value().size(); l++) {
-            std::string vvn = cvcs[k]->name +
-                (cvcs[k]->value().size() > 1 ? cvm::to_str(l+1) : "");
-            try {
-              ref = &gradient_evaluators.back()->getVariableReference(vvn);
-            }
-            catch (...) { // Variable is absent from derivative
-              // To keep the same workflow, we use a pointer to a double here
-              // that will receive CVC values - even though none was allocated by Lepton
-              if (cvm::debug()) {
-                cvm::log("Warning: Variable " + vvn + " is absent from derivative of \"" + expr + "\" wrt " + vn + ".\n");
-              }
-              ref = &dev_null;
-            }
-            grad_eval_var_refs.push_back(ref);
-          }
-        }
-      }
-    }
-  }
-
-
-  if (value_evaluators.size() == 0) {
-    cvm::error("Error: no custom function defined.\n", COLVARS_INPUT_ERROR);
-    return COLVARS_INPUT_ERROR;
-  }
-
-  std::string type_str;
-  bool b_type_specified = get_keyval(conf, "customFunctionType",
-                                     type_str, "scalar", parse_silent);
-  x.type(colvarvalue::type_notset);
-  int t;
-  for (t = 0; t < colvarvalue::type_all; t++) {
-    if (type_str == colvarvalue::type_keyword(colvarvalue::Type(t))) {
-      x.type(colvarvalue::Type(t));
-      break;
-    }
-  }
-  if (x.type() == colvarvalue::type_notset) {
-    cvm::error("Could not parse custom colvar type.", COLVARS_INPUT_ERROR);
-    return COLVARS_INPUT_ERROR;
-  }
-
-  // Guess type based on number of expressions
-  if (!b_type_specified) {
-    if (value_evaluators.size() == 1) {
-      x.type(colvarvalue::type_scalar);
-    } else {
-      x.type(colvarvalue::type_vector);
-    }
-  }
-
-  if (x.type() == colvarvalue::type_vector) {
-    x.vector1d_value.resize(value_evaluators.size());
-  }
-
-  x_reported.type(x);
-  cvm::log(std::string("Expecting colvar value of type ")
-    + colvarvalue::type_desc(x.type())
-    + (x.type()==colvarvalue::type_vector ? " of size " + cvm::to_str(x.size()) : "")
-    + ".\n");
-
-  if (x.size() != value_evaluators.size()) {
-    cvm::error("Error: based on custom function type, expected "
-               + cvm::to_str(x.size()) + " scalar expressions, but "
-               + cvm::to_str(value_evaluators.size()) + " were found.\n");
-    return COLVARS_INPUT_ERROR;
-  }
-
-  return COLVARS_OK;
-}
-
-#else
-
-int colvar::init_custom_function(std::string const &conf)
-{
-
-  std::string expr;
-  size_t pos = 0;
-  if (key_lookup(conf, "customFunction", &expr, &pos)) {
-    std::string msg("Error: customFunction requires the Lepton library.");
-    return cvm::error(msg, COLVARS_NOT_IMPLEMENTED);
-  }
-
-  return COLVARS_OK;
-}
-
-#endif // #ifdef LEPTON
-
-
 int colvar::init_grid_parameters(std::string const &conf)
 {
   int error_code = COLVARS_OK;
@@ -496,7 +160,7 @@ int colvar::init_grid_parameters(std::string const &conf)
   if (!key_already_set("width")) {
     // The first time, check if the CVC has a width to provide
     default_width = 1.0;
-    if (is_enabled(f_cv_single_cvc) && cvcs[0]->is_enabled(f_cvc_width)) {
+    if (cvcs[0]->is_enabled(f_cvc_width)) {
       cvm::real const cvc_width = cvcs[0]->get_param("width");
       default_width = cvc_width;
     }
@@ -514,9 +178,6 @@ int colvar::init_grid_parameters(std::string const &conf)
   lower_boundary.real_value = 0.0;
   upper_boundary.real_value = width; // Default to 1-wide grids
 
-  if (is_enabled(f_cv_scalar)) {
-
-    if (is_enabled(f_cv_single_cvc)) {
       // Get the default boundaries from the component
       if (cvcs[0]->is_enabled(f_cvc_lower_boundary)) {
         enable(f_cv_lower_boundary);
@@ -530,7 +191,6 @@ int colvar::init_grid_parameters(std::string const &conf)
         upper_boundary =
           *(reinterpret_cast<colvarvalue const *>(cvcs[0]->get_param_ptr("upperBoundary")));
       }
-    }
 
     if (get_keyval(conf, "lowerBoundary", lower_boundary, lower_boundary)) {
       enable(f_cv_lower_boundary);
@@ -595,7 +255,6 @@ harmonicWalls {\n\
                              "}\n");
       error_code |= cv->append_new_config(walls_conf);
     }
-  }
 
   get_keyval_feature(this, conf, "hardLowerBoundary", f_cv_hard_lower_boundary,
                      is_enabled(f_cv_hard_lower_boundary));
@@ -839,9 +498,6 @@ void colvar::define_component_types()
   colvarproxy *proxy = cvm::main()->proxy;
 
   add_component_type<distance>("distance", "distance");
-  add_component_type<cartesian>("Cartesian coordinates", "cartesian");
-
-  add_component_type<linearCombination>("linear combination of other collective variables", "linearCombination");
 
 #ifdef TORCH
   add_component_type<torchANN>("CV defined by PyTorch artifical neural network models", "torchANN");
@@ -932,12 +588,6 @@ void colvar::build_atom_list(void)
       cvm::atom_group const &ag = *(cvcs[i]->atom_groups[j]);
       for (size_t k = 0; k < ag.size(); k++) {
         temp_id_list.push_back(ag[k].id);
-      }
-      if (ag.is_enabled(f_ag_fitting_group) && ag.is_enabled(f_ag_fit_gradients)) {
-        cvm::atom_group const &fg = *(ag.fitting_group);
-        for (size_t k = 0; k < fg.size(); k++) {
-          temp_id_list.push_back(fg[k].id);
-        }
       }
     }
   }
@@ -1043,9 +693,6 @@ int colvar::init_dependencies() {
     }
 
     init_feature(f_cv_active, "active", f_type_dynamic);
-    // Do not require f_cvc_active in children, as some components may be disabled
-    // Colvars must be either a linear combination, or scalar (and polynomial) or scripted/custom
-    require_feature_alt(f_cv_active, f_cv_scalar, f_cv_linear, f_cv_scripted, f_cv_custom_function);
 
     init_feature(f_cv_awake, "awake", f_type_static);
     require_feature_self(f_cv_awake, f_cv_active);
@@ -1055,11 +702,8 @@ int colvar::init_dependencies() {
 
     init_feature(f_cv_collect_gradient, "collect_gradient", f_type_dynamic);
     require_feature_self(f_cv_collect_gradient, f_cv_gradient);
-    require_feature_self(f_cv_collect_gradient, f_cv_scalar);
     require_feature_self(f_cv_collect_gradient, f_cv_collect_atom_ids);
     // The following exclusions could be lifted by implementing the feature
-    exclude_feature_self(f_cv_collect_gradient, f_cv_scripted);
-    exclude_feature_self(f_cv_collect_gradient, f_cv_custom_function);
     require_feature_children(f_cv_collect_gradient, f_cvc_explicit_gradient);
 
     init_feature(f_cv_collect_atom_ids, "collect_atom_ids", f_type_dynamic);
@@ -1073,14 +717,10 @@ int colvar::init_dependencies() {
 
     // Deps for explicit total force calculation
     init_feature(f_cv_total_force_calc, "total_force_calculation", f_type_dynamic);
-    require_feature_self(f_cv_total_force_calc, f_cv_scalar);
-    require_feature_self(f_cv_total_force_calc, f_cv_linear);
     require_feature_children(f_cv_total_force_calc, f_cvc_inv_gradient);
     require_feature_self(f_cv_total_force_calc, f_cv_Jacobian);
 
     init_feature(f_cv_Jacobian, "Jacobian_derivative", f_type_dynamic);
-    require_feature_self(f_cv_Jacobian, f_cv_scalar);
-    require_feature_self(f_cv_Jacobian, f_cv_linear);
     require_feature_children(f_cv_Jacobian, f_cvc_Jacobian);
 
     init_feature(f_cv_hide_Jacobian, "hide_Jacobian_force", f_type_user);
@@ -1088,20 +728,12 @@ int colvar::init_dependencies() {
     exclude_feature_self(f_cv_hide_Jacobian, f_cv_extended_Lagrangian);
 
     init_feature(f_cv_extended_Lagrangian, "extended_Lagrangian", f_type_user);
-    require_feature_self(f_cv_extended_Lagrangian, f_cv_scalar);
     require_feature_self(f_cv_extended_Lagrangian, f_cv_gradient);
 
     init_feature(f_cv_Langevin, "Langevin_dynamics", f_type_user);
     require_feature_self(f_cv_Langevin, f_cv_extended_Lagrangian);
 
     init_feature(f_cv_external, "external", f_type_user);
-    require_feature_self(f_cv_external, f_cv_single_cvc);
-
-    init_feature(f_cv_single_cvc, "single_component", f_type_static);
-
-    init_feature(f_cv_linear, "linear", f_type_static);
-
-    init_feature(f_cv_scalar, "scalar", f_type_static);
 
     init_feature(f_cv_output_energy, "output_energy", f_type_user);
 
@@ -1119,10 +751,8 @@ int colvar::init_dependencies() {
     require_feature_self(f_cv_subtract_applied_force, f_cv_total_force);
 
     init_feature(f_cv_lower_boundary, "lower_boundary", f_type_user);
-    require_feature_self(f_cv_lower_boundary, f_cv_scalar);
 
     init_feature(f_cv_upper_boundary, "upper_boundary", f_type_user);
-    require_feature_self(f_cv_upper_boundary, f_cv_scalar);
 
     init_feature(f_cv_hard_lower_boundary, "hard_lower_boundary", f_type_user);
     require_feature_self(f_cv_hard_lower_boundary, f_cv_lower_boundary);
@@ -1139,22 +769,12 @@ int colvar::init_dependencies() {
     require_feature_self(f_cv_reflecting_upper_boundary, f_cv_extended_Lagrangian);
 
     init_feature(f_cv_grid, "grid", f_type_dynamic);
-    require_feature_self(f_cv_grid, f_cv_scalar);
 
     init_feature(f_cv_runave, "running_average", f_type_user);
 
     init_feature(f_cv_corrfunc, "correlation_function", f_type_user);
 
-    init_feature(f_cv_scripted, "scripted", f_type_user);
-
-    init_feature(f_cv_custom_function, "custom_function", f_type_user);
-    exclude_feature_self(f_cv_custom_function, f_cv_scripted);
-
     init_feature(f_cv_periodic, "periodic", f_type_static);
-    require_feature_self(f_cv_periodic, f_cv_scalar);
-    init_feature(f_cv_scalar, "scalar", f_type_static);
-    init_feature(f_cv_linear, "linear", f_type_static);
-    init_feature(f_cv_homogeneous, "homogeneous", f_type_static);
 
     // because total forces are obtained from the previous time step,
     // we cannot (currently) have colvar values and total forces for the same timestep
@@ -1266,21 +886,6 @@ colvar::~colvar()
 
   cv->config_changed();
 
-#ifdef LEPTON
-  for (std::vector<Lepton::CompiledExpression *>::iterator cei = value_evaluators.begin();
-       cei != value_evaluators.end();
-       ++cei) {
-    if (*cei != NULL) delete (*cei);
-  }
-  value_evaluators.clear();
-
-  for (std::vector<Lepton::CompiledExpression *>::iterator gei = gradient_evaluators.begin();
-       gei != gradient_evaluators.end();
-       ++gei) {
-    if (*gei != NULL) delete (*gei);
-  }
-  gradient_evaluators.clear();
-#endif
 }
 
 
@@ -1414,35 +1019,8 @@ int colvar::collect_cvc_values()
   x.reset();
 
   // combine them appropriately, using either a scripted function or a polynomial
-  if (is_enabled(f_cv_scripted)) {
-    // cvcs combined by user script
-    int res = cvm::proxy->run_colvar_callback(scripted_function, sorted_cvc_values, x);
-    if (res == COLVARS_NOT_IMPLEMENTED) {
-      cvm::error("Scripted colvars are not implemented.");
-      return COLVARS_NOT_IMPLEMENTED;
-    }
-    if (res != COLVARS_OK) {
-      cvm::error("Error running scripted colvar");
-      return COLVARS_OK;
-    }
 
-#ifdef LEPTON
-  } else if (is_enabled(f_cv_custom_function)) {
-
-    size_t l = 0; // index in the vector of variable references
-
-    for (size_t i = 0; i < x.size(); i++) {
-      // Fill Lepton evaluator variables with CVC values, serialized into scalars
-      for (size_t j = 0; j < cvcs.size(); j++) {
-        for (size_t k = 0; k < cvcs[j]->value().size(); k++) {
-          *(value_eval_var_refs[l++]) = cvcs[j]->value()[k];
-        }
-      }
-      x[i] = value_evaluators[i]->evaluate();
-    }
-#endif
-
-  } else if (x.type() == colvarvalue::type_scalar) {
+  if (x.type() == colvarvalue::type_scalar) {
     // polynomial combination allowed
     for (size_t i = 0; i < cvcs.size(); i++) {
       if (!cvcs[i]->is_enabled()) continue;
@@ -1911,62 +1489,7 @@ void colvar::communicate_forces()
     cvm::log("Force to be applied: " + cvm::to_str(f) + "\n");
   }
 
-  if (is_enabled(f_cv_scripted)) {
-    std::vector<cvm::matrix2d<cvm::real> > func_grads;
-    func_grads.reserve(cvcs.size());
-    for (i = 0; i < cvcs.size(); i++) {
-      if (!cvcs[i]->is_enabled()) continue;
-      func_grads.push_back(cvm::matrix2d<cvm::real> (x.size(),
-                                                     cvcs[i]->value().size()));
-    }
-    int res = cvm::proxy->run_colvar_gradient_callback(scripted_function, sorted_cvc_values, func_grads);
-
-    if (res != COLVARS_OK) {
-      if (res == COLVARS_NOT_IMPLEMENTED) {
-        cvm::error("Colvar gradient scripts are not implemented.", COLVARS_NOT_IMPLEMENTED);
-      } else {
-        cvm::error("Error running colvar gradient script");
-      }
-      return;
-    }
-
-    int grad_index = 0; // index in the scripted gradients, to account for some components being disabled
-    for (i = 0; i < cvcs.size(); i++) {
-      if (!cvcs[i]->is_enabled()) continue;
-      // cvc force is colvar force times colvar/cvc Jacobian
-      // (vector-matrix product)
-      (cvcs[i])->apply_force(colvarvalue(f.as_vector() * func_grads[grad_index++],
-                             cvcs[i]->value().type()));
-    }
-
-#ifdef LEPTON
-  } else if (is_enabled(f_cv_custom_function)) {
-
-    size_t r = 0; // index in the vector of variable references
-    size_t e = 0; // index of the gradient evaluator
-
-    for (i = 0; i < cvcs.size(); i++) {  // gradient with respect to cvc i
-      cvm::matrix2d<cvm::real> jacobian (x.size(), cvcs[i]->value().size());
-      for (size_t j = 0; j < cvcs[i]->value().size(); j++) { // j-th element
-        for (size_t c = 0; c < x.size(); c++) { // derivative of scalar element c of the colvarvalue
-
-          // Feed cvc values to the evaluator
-          for (size_t k = 0; k < cvcs.size(); k++) { //
-            for (size_t l = 0; l < cvcs[k]->value().size(); l++) {
-              *(grad_eval_var_refs[r++]) = cvcs[k]->value()[l];
-            }
-          }
-          jacobian[c][j] = gradient_evaluators[e++]->evaluate();
-        }
-      }
-      // cvc force is colvar force times colvar/cvc Jacobian
-      // (vector-matrix product)
-      (cvcs[i])->apply_force(colvarvalue(f.as_vector() * jacobian,
-                             cvcs[i]->value().type()));
-    }
-#endif
-
-  } else if (x.type() == colvarvalue::type_scalar) {
+  if (x.type() == colvarvalue::type_scalar) {
 
     for (i = 0; i < cvcs.size(); i++) {
       if (!cvcs[i]->is_enabled()) continue;
@@ -2074,54 +1597,31 @@ int colvar::update_cvc_config(std::vector<std::string> const &confs)
 
 int colvar::cvc_param_exists(std::string const &param_name)
 {
-  if (is_enabled(f_cv_single_cvc)) {
-    return cvcs[0]->param_exists(param_name);
-  }
-  return cvm::error("Error: calling colvar::cvc_param_exists() for a variable "
-                    "with more than one component.\n", COLVARS_NOT_IMPLEMENTED);
+  return cvcs[0]->param_exists(param_name);
 }
 
 
 cvm::real colvar::get_cvc_param(std::string const &param_name)
 {
-  if (is_enabled(f_cv_single_cvc)) {
-    return cvcs[0]->get_param(param_name);
-  }
-  cvm::error("Error: calling colvar::get_cvc_param() for a variable "
-             "with more than one component.\n", COLVARS_NOT_IMPLEMENTED);
-  return 0.0;
+  return cvcs[0]->get_param(param_name);
 }
 
 
 void const *colvar::get_cvc_param_ptr(std::string const &param_name)
 {
-  if (is_enabled(f_cv_single_cvc)) {
-    return cvcs[0]->get_param_ptr(param_name);
-  }
-  cvm::error("Error: calling colvar::get_cvc_param() for a variable "
-             "with more than one component.\n", COLVARS_NOT_IMPLEMENTED);
-  return NULL;
+  return cvcs[0]->get_param_ptr(param_name);
 }
 
 
 colvarvalue const *colvar::get_cvc_param_grad(std::string const &param_name)
 {
-  if (is_enabled(f_cv_single_cvc)) {
-    return cvcs[0]->get_param_grad(param_name);
-  }
-  cvm::error("Error: calling colvar::get_cvc_param_grad() for a variable "
-             "with more than one component.\n", COLVARS_NOT_IMPLEMENTED);
-  return NULL;
+  return cvcs[0]->get_param_grad(param_name);
 }
 
 
 int colvar::set_cvc_param(std::string const &param_name, void const *new_value)
 {
-  if (is_enabled(f_cv_single_cvc)) {
-    return cvcs[0]->set_param(param_name, new_value);
-  }
-  return cvm::error("Error: calling colvar::set_cvc_param() for a variable "
-                    "with more than one component.\n", COLVARS_NOT_IMPLEMENTED);
+  return cvcs[0]->set_param(param_name, new_value);
 }
 
 
@@ -2155,58 +1655,19 @@ bool colvar::periodic_boundaries() const
 cvm::real colvar::dist2(colvarvalue const &x1,
                          colvarvalue const &x2) const
 {
-  if ( is_enabled(f_cv_scripted) || is_enabled(f_cv_custom_function) ) {
-    if (is_enabled(f_cv_periodic) && is_enabled(f_cv_scalar)) {
-      cvm::real diff = x1.real_value - x2.real_value;
-      const cvm::real period_lower_boundary = wrap_center - period / 2.0;
-      const cvm::real period_upper_boundary = wrap_center + period / 2.0;
-      diff = (diff < period_lower_boundary ? diff + period : ( diff > period_upper_boundary ? diff - period : diff));
-      return diff * diff;
-    }
-  }
-  if (is_enabled(f_cv_homogeneous)) {
-    return (cvcs[0])->dist2(x1, x2);
-  } else {
-    return x1.dist2(x2);
-  }
+  return (cvcs[0])->dist2(x1, x2);
 }
 
 colvarvalue colvar::dist2_lgrad(colvarvalue const &x1,
                                  colvarvalue const &x2) const
 {
-  if ( is_enabled(f_cv_scripted) || is_enabled(f_cv_custom_function) ) {
-    if (is_enabled(f_cv_periodic) && is_enabled(f_cv_scalar)) {
-      cvm::real diff = x1.real_value - x2.real_value;
-      const cvm::real period_lower_boundary = wrap_center - period / 2.0;
-      const cvm::real period_upper_boundary = wrap_center + period / 2.0;
-      diff = (diff < period_lower_boundary ? diff + period : ( diff > period_upper_boundary ? diff - period : diff));
-      return 2.0 * diff;
-    }
-  }
-  if (is_enabled(f_cv_homogeneous)) {
-    return (cvcs[0])->dist2_lgrad(x1, x2);
-  } else {
-    return x1.dist2_grad(x2);
-  }
+  return (cvcs[0])->dist2_lgrad(x1, x2);
 }
 
 colvarvalue colvar::dist2_rgrad(colvarvalue const &x1,
                                  colvarvalue const &x2) const
 {
-  if ( is_enabled(f_cv_scripted) || is_enabled(f_cv_custom_function) ) {
-    if (is_enabled(f_cv_periodic) && is_enabled(f_cv_scalar)) {
-      cvm::real diff = x1.real_value - x2.real_value;
-      const cvm::real period_lower_boundary = wrap_center - period / 2.0;
-      const cvm::real period_upper_boundary = wrap_center + period / 2.0;
-      diff = (diff < period_lower_boundary ? diff + period : ( diff > period_upper_boundary ? diff - period : diff));
-      return (-2.0) * diff;
-    }
-  }
-  if (is_enabled(f_cv_homogeneous)) {
-    return (cvcs[0])->dist2_rgrad(x1, x2);
-  } else {
-    return x2.dist2_grad(x1);
-  }
+  return (cvcs[0])->dist2_rgrad(x1, x2);
 }
 
 
@@ -2216,14 +1677,7 @@ void colvar::wrap(colvarvalue &x_unwrapped) const
     return;
   }
 
-  if ( is_enabled(f_cv_scripted) || is_enabled(f_cv_custom_function) ) {
-    // Scripted functions do their own wrapping, as cvcs might not be periodic
-    cvm::real shift = cvm::floor((x_unwrapped.real_value - wrap_center) /
-                                 period + 0.5);
-    x_unwrapped.real_value -= shift * period;
-  } else {
-    cvcs[0]->wrap(x_unwrapped);
-  }
+  cvcs[0]->wrap(x_unwrapped);
 }
 
 

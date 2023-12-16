@@ -23,7 +23,6 @@
 #include "colvarbias_histogram_reweight_amd.h"
 #include "colvarbias_meta.h"
 #include "colvarbias_restraint.h"
-#include "colvarscript.h"
 #include "colvaratoms.h"
 #include "colvarcomp.h"
 #include "colvars_memstream.h"
@@ -136,21 +135,13 @@ colvarmodule::colvarmodule(colvarproxy *proxy_in)
   // "it" should be updated by the proxy
   colvarmodule::it = colvarmodule::it_restart = 0;
 
-  use_scripted_forces = false;
-  scripting_after_biases = false;
-
   colvarmodule::debug_gradients_step_size = 1.0e-07;
-
-  colvarmodule::rotation::monitor_crossings = false;
-  colvarmodule::rotation::crossing_threshold = 1.0e-02;
 
   cv_traj_freq = 100;
   restart_out_freq = proxy->default_restart_frequency();
 
   cv_traj_write_labels = true;
 
-  // Removes the need for proxy specializations to create this
-  proxy->script = new colvarscript(proxy, this);
 }
 
 
@@ -319,10 +310,6 @@ int colvarmodule::parse_config(std::string &conf)
   cvm::log("Collective variables module (re)initialized.\n");
   cvm::log(cvm::line_marker);
 
-  if (source_Tcl_script.size() > 0) {
-    run_tcl_script(source_Tcl_script);
-  }
-
   return get_error();
 }
 
@@ -386,48 +373,13 @@ int colvarmodule::parse_global_params(std::string const &conf)
                     debug_gradients_step_size,
                     colvarparse::parse_silent);
 
-  parse->get_keyval(conf, "monitorEigenvalueCrossing",
-                    colvarmodule::rotation::monitor_crossings,
-                    colvarmodule::rotation::monitor_crossings,
-                    colvarparse::parse_silent);
-  parse->get_keyval(conf, "eigenvalueCrossingThreshold",
-                    colvarmodule::rotation::crossing_threshold,
-                    colvarmodule::rotation::crossing_threshold,
-                    colvarparse::parse_silent);
-
   parse->get_keyval(conf, "colvarsTrajFrequency", cv_traj_freq, cv_traj_freq);
   parse->get_keyval(conf, "colvarsRestartFrequency",
                     restart_out_freq, restart_out_freq);
 
-  parse->get_keyval(conf, "scriptedColvarForces",
-                    use_scripted_forces, use_scripted_forces);
-
-  parse->get_keyval(conf, "scriptingAfterBiases",
-                    scripting_after_biases, scripting_after_biases);
-
-#if defined(COLVARS_TCL)
-  parse->get_keyval(conf, "sourceTclFile", source_Tcl_script);
-#endif
-
-  if (proxy->engine_name() == "GROMACS" && proxy->version_number() >= 20231003) {
-    parse->get_keyval(conf, "defaultInputStateFile", default_input_state_file_,
-                      default_input_state_file_);
-  }
-
   return error_code;
 }
 
-
-int colvarmodule::run_tcl_script(std::string const &filename) {
-
-  int result = COLVARS_OK;
-
-#if defined(COLVARS_TCL)
-  result = proxy->tcl_run_file(filename);
-#endif
-
-  return result;
-}
 
 
 int colvarmodule::parse_colvars(std::string const &conf)
@@ -569,13 +521,6 @@ int colvarmodule::parse_biases(std::string const &conf)
   /// initialize reweightaMD instances
   parse_biases_type<colvarbias_reweightaMD>(conf, "reweightaMD");
 
-  if (use_scripted_forces) {
-    cvm::log(cvm::line_marker);
-    cvm::increase_depth();
-    cvm::log("User forces script will be run at each bias update.\n");
-    cvm::decrease_depth();
-  }
-
   std::vector<std::string> const time_biases = time_dependent_biases();
   if (time_biases.size() > 1) {
     cvm::log("WARNING: there are "+cvm::to_str(time_biases.size())+
@@ -584,14 +529,12 @@ int colvarmodule::parse_biases(std::string const &conf)
              "Please ensure that their forces do not counteract each other.\n");
   }
 
-  if (num_biases() || use_scripted_forces) {
+  if (num_biases()) {
     cvm::log(cvm::line_marker);
     cvm::log("Collective variables biases initialized, "+
              cvm::to_str(num_biases())+" in total.\n");
   } else {
-    if (!use_scripted_forces) {
       cvm::log("No collective variables biases were defined.\n");
-    }
   }
 
   return (cvm::get_error() ? COLVARS_ERROR : COLVARS_OK);
@@ -994,19 +937,10 @@ int colvarmodule::calc_biases()
   // If SMP support is available, split up the work (unless biases need to use main thread's memory)
   if (proxy->check_smp_enabled() == COLVARS_OK && !biases_need_io) {
 
-    if (use_scripted_forces && !scripting_after_biases) {
-      // calculate biases and scripted forces in parallel
-      error_code |= proxy->smp_biases_script_loop();
-    } else {
       // calculate biases in parallel
       error_code |= proxy->smp_biases_loop();
-    }
 
   } else {
-
-    if (use_scripted_forces && !scripting_after_biases) {
-      error_code |= calc_scripted_forces();
-    }
 
     // Straight loop over biases on a single thread
     cvm::increase_depth();
@@ -1043,10 +977,6 @@ int colvarmodule::update_colvar_forces()
     error_code |= (*bi)->communicate_forces();
   }
   cvm::decrease_depth();
-
-  if (use_scripted_forces && scripting_after_biases) {
-    error_code |= calc_scripted_forces();
-  }
 
   // Now we have collected energies from both built-in and scripted biases
   if (cvm::debug())
@@ -1088,23 +1018,6 @@ int colvarmodule::update_colvar_forces()
   return error_code;
 }
 
-
-int colvarmodule::calc_scripted_forces()
-{
-  // Run user force script, if provided,
-  // potentially adding scripted forces to the colvars
-  int res;
-  res = proxy->run_force_callback();
-  if (res == COLVARS_NOT_IMPLEMENTED) {
-    cvm::error("Colvar forces scripts are not implemented.");
-    return COLVARS_NOT_IMPLEMENTED;
-  }
-  if (res != COLVARS_OK) {
-    cvm::error("Error running user colvar forces script");
-    return COLVARS_ERROR;
-  }
-  return COLVARS_OK;
-}
 
 
 int colvarmodule::write_restart_file(std::string const &out_name)
@@ -2391,12 +2304,6 @@ std::string colvarmodule::to_str(cvm::rvector const &x,
   return _to_str<cvm::rvector>(x, width, prec);
 }
 
-std::string colvarmodule::to_str(cvm::quaternion const &x,
-                                 size_t width, size_t prec)
-{
-  return _to_str<cvm::quaternion>(x, width, prec);
-}
-
 std::string colvarmodule::to_str(colvarvalue const &x,
                                  size_t width, size_t prec)
 {
@@ -2407,12 +2314,6 @@ std::string colvarmodule::to_str(cvm::vector1d<cvm::real> const &x,
                                  size_t width, size_t prec)
 {
   return _to_str< cvm::vector1d<cvm::real> >(x, width, prec);
-}
-
-std::string colvarmodule::to_str(cvm::matrix2d<cvm::real> const &x,
-                                 size_t width, size_t prec)
-{
-  return _to_str< cvm::matrix2d<cvm::real> >(x, width, prec);
 }
 
 
@@ -2444,12 +2345,6 @@ std::string colvarmodule::to_str(std::vector<cvm::rvector> const &x,
                                  size_t width, size_t prec)
 {
   return _to_str_vector<cvm::rvector>(x, width, prec);
-}
-
-std::string colvarmodule::to_str(std::vector<cvm::quaternion> const &x,
-                                 size_t width, size_t prec)
-{
-  return _to_str_vector<cvm::quaternion>(x, width, prec);
 }
 
 std::string colvarmodule::to_str(std::vector<colvarvalue> const &x,
@@ -2571,8 +2466,6 @@ cvm::step_number colvarmodule::it = 0;
 cvm::step_number colvarmodule::it_restart = 0;
 size_t    colvarmodule::restart_out_freq = 0;
 size_t    colvarmodule::cv_traj_freq = 0;
-bool      colvarmodule::use_scripted_forces = false;
-bool      colvarmodule::scripting_after_biases = true;
 
 // i/o constants
 size_t const colvarmodule::it_width = 12;

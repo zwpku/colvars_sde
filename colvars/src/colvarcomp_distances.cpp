@@ -13,8 +13,6 @@
 #include "colvarvalue.h"
 #include "colvar.h"
 #include "colvarcomp.h"
-#include "colvar_rotation_derivative.h"
-
 
 colvar::distance::distance(std::string const &conf)
   : cvc(conf)
@@ -95,67 +93,3 @@ void colvar::distance::apply_force(colvarvalue const &force)
 
 simple_scalar_dist_functions(distance)
 
-
-colvar::cartesian::cartesian(std::string const &conf)
-  : cvc(conf)
-{
-  set_function_type("cartesian");
-
-  atoms = parse_group(conf, "atoms");
-
-  bool use_x, use_y, use_z;
-  get_keyval(conf, "useX", use_x, true);
-  get_keyval(conf, "useY", use_y, true);
-  get_keyval(conf, "useZ", use_z, true);
-
-  axes.clear();
-  if (use_x) axes.push_back(0);
-  if (use_y) axes.push_back(1);
-  if (use_z) axes.push_back(2);
-
-  if (axes.size() == 0) {
-    cvm::error("Error: a \"cartesian\" component was defined with all three axes disabled.\n");
-    return;
-  }
-
-  x.type(colvarvalue::type_vector);
-  disable(f_cvc_explicit_gradient);
-  // Don't try to access atoms if creation of the atom group failed
-  if (atoms != NULL) x.vector1d_value.resize(atoms->size() * axes.size());
-}
-
-
-void colvar::cartesian::calc_value()
-{
-  size_t const dim = axes.size();
-  size_t ia, j;
-  for (ia = 0; ia < atoms->size(); ia++) {
-    for (j = 0; j < dim; j++) {
-      x.vector1d_value[dim*ia + j] = (*atoms)[ia].pos[axes[j]];
-    }
-  }
-}
-
-
-void colvar::cartesian::calc_gradients()
-{
-  // we're not using the "grad" member of each
-  // atom object, because it only can represent the gradient of a
-  // scalar colvar
-}
-
-
-void colvar::cartesian::apply_force(colvarvalue const &force)
-{
-  size_t const dim = axes.size();
-  size_t ia, j;
-  if (!atoms->noforce) {
-    cvm::rvector f;
-    for (ia = 0; ia < atoms->size(); ia++) {
-      for (j = 0; j < dim; j++) {
-        f[axes[j]] = force.vector1d_value[dim*ia + j];
-      }
-      (*atoms)[ia].apply_force(f);
-    }
-  }
-}

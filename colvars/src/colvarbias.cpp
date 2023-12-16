@@ -176,7 +176,6 @@ int colvarbias::init_dependencies() {
     init_feature(f_cvb_time_dependent, "time_dependent", f_type_static);
 
     init_feature(f_cvb_scalar_variables, "require_scalar_variables", f_type_static);
-    require_feature_children(f_cvb_scalar_variables, f_cv_scalar);
 
     init_feature(f_cvb_calc_pmf, "calculate_a_PMF", f_type_static);
 

@@ -45,39 +45,24 @@ COLVARS_INCFLAGS := $(COLVARS_DEBUG_INCFLAGS)
 
 COLVARS_SRCS := $(wildcard *.cpp)
 
-# Test if the Lepton source folder is present
-ifneq ($(wildcard ../lepton/src),)
-
-LEPTON_SRCS := $(wildcard ../lepton/src/*.cpp)
-
-LEPTON_OBJS := $(LEPTON_SRCS:.cpp=.o)
-
-LEPTON_INCFLAGS := -I../lepton/include -DLEPTON
-
-endif
-
-
-COLVARS_OBJS := $(COLVARS_SRCS:.cpp=.o) $(LEPTON_OBJS)
+COLVARS_OBJS := $(COLVARS_SRCS:.cpp=.o) 
 
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) $(EXTRACOLVARSFLAGS) $(COLVARS_INCFLAGS) $(LEPTON_INCFLAGS) -c -o $@ $< 
+	$(CXX) $(CXXFLAGS) $(EXTRACOLVARSFLAGS) $(COLVARS_INCFLAGS) -c -o $@ $< 
 
 
 $(COLVARS_LIB):	Makefile.deps $(COLVARS_OBJS)
-	$(AR) $(ARFLAGS) $(COLVARS_LIB) $(COLVARS_OBJS) $(LEPTON_OBJS) 
+	$(AR) $(ARFLAGS) $(COLVARS_LIB) $(COLVARS_OBJS)  
 
 Makefile.deps: $(COLVARS_SRCS)
 	@echo > $@
 	@for src in $^ ; do \
 	  obj=`basename $$src .cpp`.o ; \
-	  $(CXX) -MM $(COLVARS_INCFLAGS) $(LEPTON_INCFLAGS) \
+	  $(CXX) -MM $(COLVARS_INCFLAGS)  \
 	    -MT '$$(COLVARS_OBJ_DIR)'$$obj $$src >> $@ ; \
 	  done
 
 include Makefile.deps
-
-# No explicit dependencies for Lepton: we assume its object files are always
-# newer than the corresponding source files
 
 clean:
 	-rm -f $(COLVARS_OBJS) $(COLVARS_LIB) Makefile.deps

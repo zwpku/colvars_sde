@@ -15,7 +15,6 @@
 #include "colvarproxy.h"
 #include "colvar.h"
 #include "colvarbias.h"
-#include "colvarscript.h"
 #include "colvarmodule_utils.h"
 
 
@@ -349,35 +348,6 @@ int colvarproxy_smp::smp_biases_loop()
 }
 
 
-int colvarproxy_smp::smp_biases_script_loop()
-{
-#if defined(_OPENMP)
-  colvarmodule *cv = cvm::main();
-#pragma omp parallel
-  {
-#pragma omp single nowait
-    {
-      cv->calc_scripted_forces();
-    }
-#pragma omp for
-    for (size_t i = 0; i < cv->biases_active()->size(); i++) {
-      colvarbias *b = (*(cv->biases_active()))[i];
-      if (cvm::debug()) {
-        cvm::log("Calculating bias \""+b->name+"\" on thread "+
-                 cvm::to_str(smp_thread_id())+"\n");
-      }
-      b->update();
-    }
-  }
-  return cvm::get_error();
-#else
-  return COLVARS_NOT_IMPLEMENTED;
-#endif
-}
-
-
-
-
 int colvarproxy_smp::smp_thread_id()
 {
 #if defined(_OPENMP)
@@ -427,45 +397,6 @@ int colvarproxy_smp::smp_unlock()
 
 
 
-colvarproxy_script::colvarproxy_script()
-{
-  script = NULL;
-  have_scripts = false;
-}
-
-
-colvarproxy_script::~colvarproxy_script()
-{
-  if (script != NULL) {
-    delete script;
-    script = NULL;
-  }
-}
-
-
-int colvarproxy_script::run_force_callback()
-{
-  return COLVARS_NOT_IMPLEMENTED;
-}
-
-
-int colvarproxy_script::run_colvar_callback(std::string const & /* name */,
-                                            std::vector<const colvarvalue *> const & /* cvcs */,
-                                            colvarvalue & /* value */)
-{
-  return COLVARS_NOT_IMPLEMENTED;
-}
-
-
-int colvarproxy_script::run_colvar_gradient_callback(std::string const & /* name */,
-                                                     std::vector<const colvarvalue *> const & /* cvcs */,
-                                                     std::vector<cvm::matrix2d<cvm::real> > & /* gradient */)
-{
-  return COLVARS_NOT_IMPLEMENTED;
-}
-
-
-
 colvarproxy::colvarproxy()
 {
   colvars = NULL;
@@ -506,7 +437,6 @@ int colvarproxy::reset()
   int error_code = COLVARS_OK;
   error_code |= colvarproxy_atoms::reset();
   error_code |= colvarproxy_atom_groups::reset();
-  error_code |= colvarproxy_volmaps::reset();
   total_force_requested = false;
   return error_code;
 }
@@ -577,8 +507,6 @@ int colvarproxy::end_of_step()
   compute_max_atoms_applied_force();
   compute_rms_atom_groups_applied_force();
   compute_max_atom_groups_applied_force();
-  compute_rms_volmaps_applied_force();
-  compute_max_volmaps_applied_force();
 
   if (cached_alch_lambda_changed) {
     send_alch_lambda();
@@ -669,16 +597,6 @@ void colvarproxy::print_input_atomic_data()
                               cvm::cv_prec)+"\n");
 
   cvm::log(cvm::line_marker);
-
-  cvm::log("Step "+cvm::to_str(cvm::step_absolute())+", "+
-           "volmaps_ids[size = "+cvm::to_str(volmaps_ids.size())+
-           "] = "+cvm::to_str(volmaps_ids)+"\n");
-
-  cvm::log("Step "+cvm::to_str(cvm::step_absolute())+", "+
-           "volmaps_values[size = "+cvm::to_str(volmaps_values.size())+
-           "] = "+cvm::to_str(volmaps_values)+"\n");
-
-  cvm::log(cvm::line_marker);
 }
 
 
@@ -696,12 +614,6 @@ void colvarproxy::print_output_atomic_data()
            cvm::to_str(atom_groups_new_colvar_forces,
                        colvarmodule::cv_width,
                        colvarmodule::cv_prec)+"\n");
-
-  cvm::log(cvm::line_marker);
-
-  cvm::log("Step "+cvm::to_str(cvm::step_absolute())+", "+
-           "volmaps_new_colvar_forces = "+
-           cvm::to_str(volmaps_new_colvar_forces)+"\n");
 
   cvm::log(cvm::line_marker);
 }
