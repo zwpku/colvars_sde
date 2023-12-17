@@ -174,7 +174,6 @@ public:
   }
 
   // Forward declarations
-  class rvector;
   template <class T> class vector1d;
 
   class usage;
@@ -182,18 +181,6 @@ public:
 
   /// Residue identifier
   typedef int residue_id;
-
-  /// \brief Atom position (different type name from rvector, to make
-  /// possible future PBC-transparent implementations)
-  typedef rvector atom_pos;
-
-  // allow these classes to access protected data
-  class atom;
-  class atom_group;
-  friend class atom;
-  friend class atom_group;
-  typedef std::vector<atom>::iterator       atom_iter;
-  typedef std::vector<atom>::const_iterator atom_const_iter;
 
   /// Module-wide error state
   /// see constants at the top of this file
@@ -265,15 +252,6 @@ private:
   std::vector<colvar *> colvars_smp;
   /// Indexes of the items to calculate for each colvar
   std::vector<int> colvars_smp_items;
-
-  /// Array of named atom groups
-  std::vector<atom_group *> named_atom_groups;
-public:
-  /// Register a named atom group into named_atom_groups
-  void register_named_atom_group(atom_group *ag);
-
-  /// Remove a named atom group from named_atom_groups
-  void unregister_named_atom_group(atom_group *ag);
 
   /// Array of collective variables
   std::vector<colvar *> *variables();
@@ -510,9 +488,6 @@ public:
   /// Look up a colvar by name; returns NULL if not found
   static colvar * colvar_by_name(std::string const &name);
 
-  /// Look up a named atom group by name; returns NULL if not found
-  static atom_group * atom_group_by_name(std::string const &name);
-
   /// Load new configuration for the given bias -
   /// currently works for harmonic (force constant and/or centers)
   int change_configuration(std::string const &bias_name, std::string const &conf);
@@ -578,10 +553,6 @@ public:
                             size_t width = 0, size_t prec = 0);
 
   /// Convert to string for output purposes
-  static std::string to_str(rvector const &x,
-                            size_t width = 0, size_t prec = 0);
-
-  /// Convert to string for output purposes
   static std::string to_str(colvarvalue const &x,
                             size_t width = 0, size_t prec = 0);
 
@@ -604,10 +575,6 @@ public:
 
   /// Convert to string for output purposes
   static std::string to_str(std::vector<real> const &x,
-                            size_t width = 0, size_t prec = 0);
-
-  /// Convert to string for output purposes
-  static std::string to_str(std::vector<rvector> const &x,
                             size_t width = 0, size_t prec = 0);
 
   /// Convert to string for output purposes
@@ -702,57 +669,6 @@ public:
     return 5;
   }
 
-  /// \brief Get the distance between two atomic positions with pbcs handled
-  /// correctly
-  static rvector position_distance(atom_pos const &pos1,
-                                   atom_pos const &pos2);
-
-  /// \brief Names of .ndx files that have been loaded
-  std::vector<std::string> index_file_names;
-
-  /// \brief Names of groups from one or more Gromacs .ndx files
-  std::vector<std::string> index_group_names;
-
-  /// \brief Groups from one or more Gromacs .ndx files
-  std::vector<std::vector<int> *> index_groups;
-
-  /// \brief Read a Gromacs .ndx file
-  int read_index_file(char const *filename);
-
-  /// Clear the index groups loaded so far
-  int reset_index_groups();
-
-  /// \brief Select atom IDs from a file (usually PDB) \param filename name of
-  /// the file \param atoms array into which atoms read from "filename" will be
-  /// appended \param pdb_field (optional) if the file is a PDB and this
-  /// string is non-empty, select atoms for which this field is non-zero
-  /// \param pdb_field_value (optional) if non-zero, select only atoms whose
-  /// pdb_field equals this
-  static int load_atoms(char const *filename,
-                        atom_group &atoms,
-                        std::string const &pdb_field,
-                        double pdb_field_value = 0.0);
-
-  /// \brief Load coordinates for a group of atoms from a file (PDB or XYZ);
-  /// if "pos" is already allocated, the number of its elements must match the
-  /// number of entries in "filename" \param filename name of the file \param
-  /// pos array of coordinates \param atoms group containing the atoms (used
-  /// to obtain internal IDs) \param pdb_field (optional) if the file is a PDB
-  /// and this string is non-empty, select atoms for which this field is
-  /// non-zero \param pdb_field_value (optional) if non-zero, select only
-  /// atoms whose pdb_field equals this
-  static int load_coords(char const *filename,
-                         std::vector<rvector> *pos,
-                         atom_group *atoms,
-                         std::string const &pdb_field,
-                         double pdb_field_value = 0.0);
-
-  /// Load coordinates into an atom group from an XYZ file (assumes Angstroms)
-  int load_coords_xyz(char const *filename,
-                      std::vector<rvector> *pos,
-                      atom_group *atoms,
-                      bool keep_open = false);
-
   /// Frequency for collective variables trajectory output
   static size_t cv_traj_freq;
 
@@ -830,9 +746,6 @@ public:
 /// Shorthand for the frequently used type prefix
 typedef colvarmodule cvm;
 
-
-std::ostream & operator << (std::ostream &os, cvm::rvector const &v);
-std::istream & operator >> (std::istream &is, cvm::rvector &v);
 
 
 namespace {

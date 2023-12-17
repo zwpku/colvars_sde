@@ -832,19 +832,6 @@ void colvarbias_meta::calc_hills_force(size_t const &i,
     }
     break;
 
-  case colvarvalue::type_3vector:
-  case colvarvalue::type_unit3vector:
-  case colvarvalue::type_unit3vectorderiv:
-    for (h = h_first; h != h_last; h++) {
-      if (h->value() == 0.0) continue;
-      colvarvalue const &center = h->centers[i];
-      cvm::real const sigma = h->sigmas[i];
-      forces[i].rvector_value +=
-        ( h->weight() * h->value() * (0.5 / (sigma*sigma)) *
-          (variables(i)->dist2_lgrad(x, center)).rvector_value );
-    }
-    break;
-
   case colvarvalue::type_vector:
     for (h = h_first; h != h_last; h++) {
       if (h->value() == 0.0) continue;

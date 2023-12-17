@@ -497,8 +497,6 @@ void colvar::define_component_types()
 {
   colvarproxy *proxy = cvm::main()->proxy;
 
-  add_component_type<distance>("distance", "distance");
-
 #ifdef TORCH
   add_component_type<torchANN>("CV defined by PyTorch artifical neural network models", "torchANN");
 #endif
@@ -567,47 +565,6 @@ void colvar::do_feature_side_effects(int id)
     case f_cv_total_force_calc:
       cvm::request_total_force();
       break;
-    case f_cv_collect_atom_ids:
-      // Needed for getting gradients vias collect_gradients
-      // or via atomic forces e.g. in Colvars Dashboard in VMD
-      if (atom_ids.size() == 0) {
-        build_atom_list();
-      }
-      break;
-  }
-}
-
-
-void colvar::build_atom_list(void)
-{
-  // If atomic gradients are requested, build full list of atom ids from all cvcs
-  std::list<int> temp_id_list;
-
-  for (size_t i = 0; i < cvcs.size(); i++) {
-    for (size_t j = 0; j < cvcs[i]->atom_groups.size(); j++) {
-      cvm::atom_group const &ag = *(cvcs[i]->atom_groups[j]);
-      for (size_t k = 0; k < ag.size(); k++) {
-        temp_id_list.push_back(ag[k].id);
-      }
-    }
-  }
-
-  temp_id_list.sort();
-  temp_id_list.unique();
-
-  std::list<int>::iterator li;
-  for (li = temp_id_list.begin(); li != temp_id_list.end(); ++li) {
-    atom_ids.push_back(*li);
-  }
-
-  temp_id_list.clear();
-
-  atomic_gradients.resize(atom_ids.size());
-  if (atom_ids.size()) {
-    if (cvm::debug())
-      cvm::log("Colvar: created atom list with " + cvm::to_str(atom_ids.size()) + " atoms.\n");
-  } else {
-    cvm::log("Warning: colvar components communicated no atom IDs.\n");
   }
 }
 
@@ -662,8 +619,6 @@ int colvar::parse_analysis(std::string const &conf)
                           "\" is not defined at this time.\n", COLVARS_INPUT_ERROR);
       }
       cv2->enable(f_cv_fdiff_velocity); // Manual dependency to object of same type
-    } else if (acf_type_str == to_lower_cppstr(std::string("coordinate_p2"))) {
-      acf_type = acf_p2coor;
     } else {
       cvm::log("Unknown type of correlation function, \""+
                         acf_type_str+"\".\n");
@@ -806,41 +761,6 @@ int colvar::init_dependencies() {
 
 void colvar::setup()
 {
-  // loop over all components to update masses and charges of all groups
-  for (size_t i = 0; i < cvcs.size(); i++) {
-    for (size_t ig = 0; ig < cvcs[i]->atom_groups.size(); ig++) {
-      cvm::atom_group *atoms = cvcs[i]->atom_groups[ig];
-      atoms->setup();
-      atoms->print_properties(name, i, ig);
-      atoms->read_positions();
-    }
-  }
-}
-
-
-std::vector<std::vector<int> > colvar::get_atom_lists()
-{
-  std::vector<std::vector<int> > lists;
-  for (size_t i = 0; i < cvcs.size(); i++) {
-    std::vector<std::vector<int> > li = cvcs[i]->get_atom_lists();
-    lists.insert(lists.end(), li.begin(), li.end());
-  }
-  return lists;
-}
-
-
-std::vector<int> const &colvar::get_volmap_ids()
-{
-  volmap_ids_.resize(cvcs.size());
-  for (size_t i = 0; i < cvcs.size(); i++) {
-    if (cvcs[i]->param_exists("mapID") == COLVARS_OK) {
-      volmap_ids_[i] =
-        *(reinterpret_cast<int const *>(cvcs[i]->get_param_ptr("mapID")));
-    } else {
-      volmap_ids_[i] = -1;
-    }
-  }
-  return volmap_ids_;
 }
 
 
@@ -2141,7 +2061,6 @@ int colvar::calc_acf()
       break;
 
     case acf_coor:
-    case acf_p2coor:
       // allocate space for the coordinates history
       for (i = 0; i < acf_stride; i++) {
         acf_x_history.push_back(std::list<colvarvalue>());
@@ -2169,14 +2088,6 @@ int colvar::calc_acf()
     case acf_coor:
 
       calc_coor_acf((*acf_x_history_p), cfcv->value());
-      history_add_value(acf_length+acf_offset, *acf_x_history_p,
-                        cfcv->value());
-      history_incr(acf_x_history, acf_x_history_p);
-      break;
-
-    case acf_p2coor:
-
-      calc_p2coor_acf((*acf_x_history_p), cfcv->value());
       history_add_value(acf_length+acf_offset, *acf_x_history_p,
                         cfcv->value());
       history_incr(acf_x_history, acf_x_history_p);
@@ -2237,28 +2148,6 @@ void colvar::calc_coor_acf(std::list<colvarvalue> &x_list,
 }
 
 
-void colvar::calc_p2coor_acf(std::list<colvarvalue> &x_list,
-                             colvarvalue const &x_now)
-{
-  // same as above but with second order Legendre polynomial instead
-  // of just the scalar product
-  if (x_list.size() >= acf_length+acf_offset) {
-    std::list<colvarvalue>::iterator  xs_i = x_list.begin();
-    std::vector<cvm::real>::iterator acf_i = acf.begin();
-
-    for (size_t i = 0; i < acf_offset; i++)
-      ++xs_i;
-
-    // value of P2(0) = 1
-    *(acf_i++) += 1.0;
-
-    colvarvalue::p2leg_opt(x_now, xs_i, x_list.end(), acf_i);
-
-    acf_nframes++;
-  }
-}
-
-
 int colvar::write_acf(std::ostream &os)
 {
   if (!acf_nframes) {
@@ -2273,9 +2162,6 @@ int colvar::write_acf(std::ostream &os)
     break;
   case acf_coor:
     os << "Coordinate";
-    break;
-  case acf_p2coor:
-    os << "Coordinate (2nd Legendre poly)";
     break;
   case acf_notset:
   default:

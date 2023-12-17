@@ -23,7 +23,6 @@
 #include "colvarbias_histogram_reweight_amd.h"
 #include "colvarbias_meta.h"
 #include "colvarbias_restraint.h"
-#include "colvaratoms.h"
 #include "colvarcomp.h"
 #include "colvars_memstream.h"
 
@@ -339,13 +338,6 @@ int colvarmodule::parse_global_params(std::string const &conf)
   // TODO document and then echo this keyword
   parse->get_keyval(conf, "logLevel", log_level_, log_level_,
                     colvarparse::parse_silent);
-  {
-    std::string units;
-    if (parse->get_keyval(conf, "units", units)) {
-      units = colvarparse::to_lower_cppstr(units);
-      error_code |= proxy->set_unit_system(units, (colvars.size() != 0));
-    }
-  }
 
   {
     std::string index_file_name;
@@ -648,38 +640,6 @@ colvar *colvarmodule::colvar_by_name(std::string const &name)
     }
   }
   return NULL;
-}
-
-
-cvm::atom_group *colvarmodule::atom_group_by_name(std::string const &name)
-{
-  colvarmodule *cv = cvm::main();
-  for (std::vector<cvm::atom_group *>::iterator agi = cv->named_atom_groups.begin();
-       agi != cv->named_atom_groups.end();
-       agi++) {
-    if ((*agi)->name == name) {
-      return (*agi);
-    }
-  }
-  return NULL;
-}
-
-
-void colvarmodule::register_named_atom_group(atom_group *ag) {
-  named_atom_groups.push_back(ag);
-}
-
-
-void colvarmodule::unregister_named_atom_group(cvm::atom_group *ag)
-{
-  for (std::vector<cvm::atom_group *>::iterator agi = named_atom_groups.begin();
-       agi != named_atom_groups.end();
-       agi++) {
-    if (*agi == ag) {
-      named_atom_groups.erase(agi);
-      break;
-    }
-  }
 }
 
 
@@ -1191,7 +1151,6 @@ colvarmodule::~colvarmodule()
     colvarbias::delete_features();
     colvar::delete_features();
     colvar::cvc::delete_features();
-    atom_group::delete_features();
 
     delete
       reinterpret_cast<std::map<std::string, int> *>(num_biases_types_used_);
@@ -1938,255 +1897,6 @@ int colvarmodule::error(std::string const &message, int code)
 }
 
 
-int cvm::read_index_file(char const *filename)
-{
-  std::istream &is = proxy->input_stream(filename, "index file");
-
-  if (!is) {
-    return COLVARS_FILE_ERROR;
-  } else {
-    index_file_names.push_back(std::string(filename));
-  }
-
-  while (is.good()) {
-    char open, close;
-    std::string group_name;
-    int index_of_group = -1;
-    if ( (is >> open) && (open == '[') &&
-         (is >> group_name) &&
-         (is >> close) && (close == ']') ) {
-      size_t i = 0;
-      for ( ; i < index_group_names.size(); i++) {
-        if (index_group_names[i] == group_name) {
-          // Found a group with the same name
-          index_of_group = i;
-        }
-      }
-      if (index_of_group < 0) {
-        index_group_names.push_back(group_name);
-        index_groups.push_back(NULL);
-        index_of_group = index_groups.size()-1;
-      }
-    } else {
-      return cvm::error("Error: in parsing index file \""+
-                        std::string(filename)+"\".\n",
-                        COLVARS_INPUT_ERROR);
-    }
-
-    std::vector<int> *old_index_group = index_groups[index_of_group];
-    std::vector<int> *new_index_group = new std::vector<int>();
-
-    int atom_number = 1;
-    std::streampos pos = is.tellg();
-    while ( (is >> atom_number) && (atom_number > 0) ) {
-      new_index_group->push_back(atom_number);
-      pos = is.tellg();
-    }
-
-    if (old_index_group != NULL) {
-      bool equal = false;
-      if (new_index_group->size() == old_index_group->size()) {
-        if (std::equal(new_index_group->begin(), new_index_group->end(),
-                       old_index_group->begin())) {
-          equal = true;
-        }
-      }
-      if (! equal) {
-        new_index_group->clear();
-        delete new_index_group;
-        new_index_group = NULL;
-        return cvm::error("Error: the index group \""+group_name+
-                          "\" was redefined.\n", COLVARS_INPUT_ERROR);
-      } else {
-        old_index_group->clear();
-        delete old_index_group;
-        old_index_group = NULL;
-      }
-    }
-
-    index_groups[index_of_group] = new_index_group;
-
-    is.clear();
-    is.seekg(pos, std::ios::beg);
-    std::string delim;
-    if ( (is >> delim) && (delim == "[") ) {
-      // new group
-      is.clear();
-      is.seekg(pos, std::ios::beg);
-    } else {
-      break;
-    }
-  }
-
-  cvm::log("The following index groups are currently defined:\n");
-  size_t i = 0;
-  for ( ; i < index_group_names.size(); i++) {
-    cvm::log("  "+(index_group_names[i])+" ("+
-             cvm::to_str((index_groups[i])->size())+" atoms)\n");
-  }
-
-  return proxy->close_input_stream(filename);
-}
-
-
-int colvarmodule::reset_index_groups()
-{
-  size_t i = 0;
-  for ( ; i < index_groups.size(); i++) {
-    delete index_groups[i];
-    index_groups[i] = NULL;
-  }
-  index_group_names.clear();
-  index_groups.clear();
-  index_file_names.clear();
-  return COLVARS_OK;
-}
-
-
-int cvm::load_atoms(char const *file_name,
-                    cvm::atom_group &atoms,
-                    std::string const &pdb_field,
-                    double pdb_field_value)
-{
-  return proxy->load_atoms(file_name, atoms, pdb_field, pdb_field_value);
-}
-
-
-int cvm::load_coords(char const *file_name,
-                     std::vector<cvm::rvector> *pos,
-                     cvm::atom_group *atoms,
-                     std::string const &pdb_field,
-                     double pdb_field_value)
-{
-  int error_code = COLVARS_OK;
-
-  std::string const ext(strlen(file_name) > 4 ?
-                        (file_name + (strlen(file_name) - 4)) :
-                        file_name);
-
-  atoms->create_sorted_ids();
-
-  std::vector<cvm::rvector> sorted_pos(atoms->size(), cvm::rvector(0.0));
-
-  // Differentiate between PDB and XYZ files
-  if (colvarparse::to_lower_cppstr(ext) == std::string(".xyz")) {
-    if (pdb_field.size() > 0) {
-      return cvm::error("Error: PDB column may not be specified "
-                        "for XYZ coordinate files.\n", COLVARS_INPUT_ERROR);
-    }
-    // For XYZ files, use internal parser
-    error_code |= cvm::main()->load_coords_xyz(file_name, &sorted_pos, atoms);
-  } else {
-    // Otherwise, call proxy function for PDB
-    error_code |= proxy->load_coords(file_name,
-                                     sorted_pos, atoms->sorted_ids(),
-                                     pdb_field, pdb_field_value);
-  }
-
-  std::vector<int> const &map = atoms->sorted_ids_map();
-  for (size_t i = 0; i < atoms->size(); i++) {
-    (*pos)[map[i]] = sorted_pos[i];
-  }
-
-  return error_code;
-}
-
-
-int cvm::load_coords_xyz(char const *filename,
-                         std::vector<rvector> *pos,
-                         cvm::atom_group *atoms,
-                         bool keep_open)
-{
-  std::istream &xyz_is = proxy->input_stream(filename, "XYZ file");
-  unsigned int natoms;
-  char symbol[256];
-  std::string line;
-  cvm::real x = 0.0, y = 0.0, z = 0.0;
-
-  std::string const error_msg("Error: cannot parse XYZ file \""+
-                              std::string(filename)+"\".\n");
-
-  if ( ! (xyz_is >> natoms) ) {
-      // Return silent error when reaching the end of multi-frame files
-      return keep_open ? COLVARS_NO_SUCH_FRAME : cvm::error(error_msg, COLVARS_INPUT_ERROR);
-  }
-
-  ++xyz_reader_use_count;
-  if (xyz_reader_use_count < 2) {
-    cvm::log("Warning: beginning from 2019-11-26 the XYZ file reader assumes Angstrom units.\n");
-  }
-
-  if (xyz_is.good()) {
-    // skip comment line
-    cvm::getline(xyz_is, line);
-    cvm::getline(xyz_is, line);
-    xyz_is.width(255);
-  } else {
-    return cvm::error(error_msg, COLVARS_INPUT_ERROR);
-  }
-
-  std::vector<atom_pos>::iterator pos_i = pos->begin();
-  size_t xyz_natoms = 0;
-  if (pos->size() != natoms) { // Use specified indices
-    int next = 0; // indices are zero-based
-    if (!atoms) {
-      // In the other branch of this test, reading all positions from the file,
-      // a valid atom group pointer is not necessary
-      return cvm::error("Trying to read partial positions with invalid atom group pointer",
-                        COLVARS_BUG_ERROR);
-    }
-    std::vector<int>::const_iterator index = atoms->sorted_ids().begin();
-
-    for ( ; pos_i != pos->end() ; pos_i++, index++) {
-      while ( next < *index ) {
-        cvm::getline(xyz_is, line);
-        next++;
-      }
-      if (xyz_is.good()) {
-        xyz_is >> symbol;
-        xyz_is >> x >> y >> z;
-        // XYZ files are assumed to be in Angstrom (as eg. VMD will)
-        (*pos_i)[0] = proxy->angstrom_to_internal(x);
-        (*pos_i)[1] = proxy->angstrom_to_internal(y);
-        (*pos_i)[2] = proxy->angstrom_to_internal(z);
-        xyz_natoms++;
-      } else {
-        return cvm::error(error_msg, COLVARS_INPUT_ERROR);
-      }
-    }
-
-  } else {          // Use all positions
-
-    for ( ; pos_i != pos->end() ; pos_i++) {
-      if (xyz_is.good()) {
-        xyz_is >> symbol;
-        xyz_is >> x >> y >> z;
-        (*pos_i)[0] = proxy->angstrom_to_internal(x);
-        (*pos_i)[1] = proxy->angstrom_to_internal(y);
-        (*pos_i)[2] = proxy->angstrom_to_internal(z);
-        xyz_natoms++;
-      } else {
-        return cvm::error(error_msg, COLVARS_INPUT_ERROR);
-      }
-    }
-  }
-
-  if (xyz_natoms != pos->size()) {
-    return cvm::error("Error: The number of positions read from file \""+
-                      std::string(filename)+"\" does not match the number of "+
-                      "positions required: "+cvm::to_str(xyz_natoms)+" vs. "+
-                      cvm::to_str(pos->size())+".\n", COLVARS_INPUT_ERROR);
-  }
-
-  if (keep_open) {
-    return COLVARS_OK;
-  } else {
-    return proxy->close_input_stream(filename);
-  }
-}
-
-
-
 // Wrappers to proxy functions: these may go in the future
 
 
@@ -2199,13 +1909,6 @@ cvm::real cvm::dt()
 void cvm::request_total_force()
 {
   proxy->request_total_force(true);
-}
-
-
-cvm::rvector cvm::position_distance(cvm::atom_pos const &pos1,
-                                    cvm::atom_pos const &pos2)
-{
-  return proxy->position_distance(pos1, pos2);
 }
 
 
@@ -2298,12 +2001,6 @@ std::string colvarmodule::to_str(cvm::real const &x,
   return _to_str<cvm::real>(x, width, prec);
 }
 
-std::string colvarmodule::to_str(cvm::rvector const &x,
-                                 size_t width, size_t prec)
-{
-  return _to_str<cvm::rvector>(x, width, prec);
-}
-
 std::string colvarmodule::to_str(colvarvalue const &x,
                                  size_t width, size_t prec)
 {
@@ -2339,12 +2036,6 @@ std::string colvarmodule::to_str(std::vector<cvm::real> const &x,
                                  size_t width, size_t prec)
 {
   return _to_str_vector<cvm::real>(x, width, prec);
-}
-
-std::string colvarmodule::to_str(std::vector<cvm::rvector> const &x,
-                                 size_t width, size_t prec)
-{
-  return _to_str_vector<cvm::rvector>(x, width, prec);
 }
 
 std::string colvarmodule::to_str(std::vector<colvarvalue> const &x,

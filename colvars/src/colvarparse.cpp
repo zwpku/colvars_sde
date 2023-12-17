@@ -420,15 +420,6 @@ bool colvarparse::get_keyval(std::string const &conf,
 
 bool colvarparse::get_keyval(std::string const &conf,
                              char const *key,
-                             cvm::rvector &value,
-                             cvm::rvector const &def_value,
-                             Parse_Mode const parse_mode)
-{
-  return _get_keyval_scalar_<cvm::rvector>(conf, key, value, def_value, parse_mode);
-}
-
-bool colvarparse::get_keyval(std::string const &conf,
-                             char const *key,
                              colvarvalue &value,
                              colvarvalue const &def_value,
                              Parse_Mode const parse_mode)
@@ -491,15 +482,6 @@ bool colvarparse::get_keyval(std::string const &conf,
                              Parse_Mode const parse_mode)
 {
   return _get_keyval_vector_<cvm::real>(conf, key, values, def_values, parse_mode);
-}
-
-bool colvarparse::get_keyval(std::string const &conf,
-                             char const *key,
-                             std::vector<cvm::rvector> &values,
-                             std::vector<cvm::rvector> const &def_values,
-                             Parse_Mode const parse_mode)
-{
-  return _get_keyval_vector_<cvm::rvector>(conf, key, values, def_values, parse_mode);
 }
 
 bool colvarparse::get_keyval(std::string const &conf,

@@ -31,9 +31,6 @@ public:
   /// dimension with the back-end (length and forces)
   std::string units;
 
-  /// \brief Request to set the units used internally by Colvars
-  virtual int set_unit_system(std::string const &units, bool check_only);
-
   /// \brief Convert a length from Angstrom to internal
   inline cvm::real angstrom_to_internal(cvm::real l) const
   {
@@ -76,16 +73,6 @@ public:
   /// Pass restraint energy value for current timestep to MD engine
   virtual void add_energy(cvm::real energy);
 
-  /// \brief Get the PBC-aware distance vector between two positions
-  virtual cvm::rvector position_distance(cvm::atom_pos const &pos1,
-                                         cvm::atom_pos const &pos2) const;
-
-  /// Recompute PBC reciprocal lattice (assumes XYZ periodicity)
-  void update_pbc_lattice();
-
-  /// Set the lattice vectors to zero
-  void reset_pbc_lattice();
-
   /// \brief Tell the proxy whether total forces are needed (they may not
   /// always be available)
   virtual void request_total_force(bool yesno);
@@ -95,10 +82,6 @@ public:
 
   /// Are total forces from the current step available?
   virtual bool total_forces_same_step() const;
-
-  /// Get the molecule ID when called in VMD; raise error otherwise
-  /// \param molid Set this argument equal to the current VMD molid
-  virtual int get_molid(int &molid);
 
   /// Get value of alchemical lambda parameter from back-end (if available)
   virtual int get_alch_lambda(cvm::real* lambda);
@@ -175,12 +158,6 @@ protected:
 
   /// Type of boundary conditions
   Boundaries_type boundaries_type;
-
-  /// Bravais lattice vectors
-  cvm::rvector unit_cell_x, unit_cell_y, unit_cell_z;
-
-  /// Reciprocal lattice vectors
-  cvm::rvector reciprocal_cell_x, reciprocal_cell_y, reciprocal_cell_z;
 };
 
 #endif

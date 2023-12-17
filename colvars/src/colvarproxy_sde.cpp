@@ -27,6 +27,12 @@ void colvarproxy_sde::init(t_inputrec *ir, int64_t step,
 
   angstrom_value_ = 1.0;
 
+  // Retrieve the number of colvar atoms
+  n_dim=ir->dim;
+
+  positions.resize(n_dim);
+  colvar_forces.resize(n_dim);
+
   // Get the thermostat temperature.
   // NOTE: Considers only the first temperature coupling group!
   set_target_temperature(ir->ref_t);
@@ -89,20 +95,6 @@ void colvarproxy_sde::init(t_inputrec *ir, int64_t step,
 
   colvars->it = colvars->it_restart = step;
 
-  // Retrieve the number of colvar atoms
-  n_colvars_atoms = atoms_ids.size();
-
-  // Copy their global indices
-  ind = atoms_ids.data(); // This has to be updated if the vector is reallocated
-
-  if (cvm::debug()) {
-    cvm::log ("atoms_ids = "+cvm::to_str (atoms_ids)+"\n");
-    cvm::log ("atoms_refcount = "+cvm::to_str (atoms_refcount)+"\n");
-    cvm::log ("positions = "+cvm::to_str (atoms_positions)+"\n");
-    cvm::log ("atoms_new_colvar_forces = "+cvm::to_str (atoms_new_colvar_forces)+"\n");
-    cvm::log (cvm::line_marker);
-    log("done initializing the colvars proxy object.\n");
-  }
 
 } // End colvars initialization.
 
@@ -125,19 +117,6 @@ size_t colvarproxy_sde::restart_frequency()
 {
   return restart_frequency_s;
 }
-
-//  Get the distance vector between two positions
-cvm::rvector colvarproxy_sde::position_distance (cvm::atom_pos const &pos1,
-                                                     cvm::atom_pos const &pos2) const
-{
-  rvec dr;
-  dr[0] = pos1.x-pos2.x;
-  dr[1] = 0.0;
-  dr[2] = 0.0;
-
-  return cvm::atom_pos( dr[0], dr[1], dr[2] );
-}
-
 
 void colvarproxy_sde::log (std::string const &message)
 {
@@ -167,28 +146,6 @@ void colvarproxy_sde::exit (std::string const &message)
   cvm::error("exit: " + message + "\n");
 }
 
-int colvarproxy_sde::load_atoms (char const *filename, std::vector<cvm::atom> &atoms,
-                                     std::string const &pdb_field, double const pdb_field_value)
-{
-  cvm::error("Selecting collective variable atoms "
-		   "from a PDB file is currently not supported.\n");
-  return COLVARS_NOT_IMPLEMENTED;
-}
-
-int colvarproxy_sde::load_coords (char const *filename, std::vector<cvm::atom_pos> &pos,
-                                      const std::vector<int> &indices, std::string const &pdb_field_str,
-                                      double const pdb_field_value)
-{
-  cvm::error("Loading atoms coordinates from a PDB or GRO file is currently not supported.\n");
-  return COLVARS_NOT_IMPLEMENTED;
-}
-
-int colvarproxy_sde::set_unit_system(std::string const &units_in, bool /*colvars_defined*/)
-{
-  cvm::error("Setting units is currently not supported.\n");
-  return COLVARS_NOT_IMPLEMENTED;
-}
-
 
 void colvarproxy_sde::update_data(int64_t const step)
 {
@@ -215,19 +172,14 @@ void colvarproxy_sde::update_data(int64_t const step)
 void colvarproxy_sde::calculateForces( std::vector<double> &x, std::vector<double>& bf)
 {
 
-  /*
-  // Local atom coords
-  const double x  = forceProviderInput.x_;
-  */
-
   // Zero the forces on the atoms, so that they can be accumulated by the colvars.
-  for (size_t i = 0; i < atoms_new_colvar_forces.size(); i++) {
-    atoms_new_colvar_forces[i].x = atoms_new_colvar_forces[i].y = atoms_new_colvar_forces[i].z = 0.0;
+  for (size_t i = 0; i < n_dim; i++) {
+    colvar_forces[i] = 0.0;
   }
 
-  // Get the atom positions from the Gromacs array.
-  for (size_t i = 0; i < atoms_ids.size(); i++) {
-    atoms_positions[i] = cvm::rvector(x[i], 0.0, 0.0);
+  // Get the positions 
+  for (size_t i = 0; i < n_dim; i++) {
+    positions[i] = x[i];
   }
 
   bias_energy = 0.0;
@@ -237,11 +189,8 @@ void colvarproxy_sde::calculateForces( std::vector<double> &x, std::vector<doubl
   }
 
   // Pass the applied forces to backend
-  for (int i = 0; i < n_colvars_atoms; i++)
-  {
-    int i_global = ind[i];
-    bf[i_global] = atoms_new_colvar_forces[i].x;
-  }
+  for (int i = 0; i < n_dim; i++)
+    bf[i] = colvar_forces[i];
 
   return;
 }
@@ -253,45 +202,3 @@ void colvarproxy_sde::add_energy (cvm::real energy)
   bias_energy += energy;
 }
 
-// **************** ATOMS ****************
-
-int colvarproxy_sde::check_atom_id(int atom_number)
-{
-  // GROMACS uses zero-based arrays.
-  int const aid = (atom_number-1);
-
-  if (cvm::debug())
-    log("Adding atom "+cvm::to_str(atom_number)+
-        " for collective variables calculation.\n");
-
-  return aid;
-}
-
-
-int colvarproxy_sde::init_atom(int atom_number)
-{
-  // GROMACS uses zero-based arrays.
-  int aid = atom_number-1;
-
-  for (size_t i = 0; i < atoms_ids.size(); i++) {
-    if (atoms_ids[i] == aid) {
-      // this atom id was already recorded
-      atoms_refcount[i] += 1;
-      return i;
-    }
-  }
-
-  aid = check_atom_id(atom_number);
-
-  if(aid < 0) {
-    return COLVARS_INPUT_ERROR;
-  }
-
-  int const index = add_atom_slot(aid);
-  update_atom_properties(index);
-  return index;
-}
-
-void colvarproxy_sde::update_atom_properties(int index)
-{
-}

@@ -151,80 +151,7 @@ int colvar::cvc::init_total_force_params(std::string const &conf)
     cvm::log("Computing total force on group 1 only\n");
   }
 
-  if (! is_enabled(f_cvc_one_site_total_force)) {
-    // check whether any of the other atom groups is dummy
-    std::vector<cvm::atom_group *>::iterator agi = atom_groups.begin();
-    agi++;
-    for ( ; agi != atom_groups.end(); agi++) {
-      if ((*agi)->b_dummy) {
-        provide(f_cvc_inv_gradient, false);
-        provide(f_cvc_Jacobian, false);
-      }
-    }
-  }
-
   return COLVARS_OK;
-}
-
-
-cvm::atom_group *colvar::cvc::parse_group(std::string const &conf,
-                                          char const *group_key,
-                                          bool optional)
-{
-  int &error_code = init_code;
-
-  cvm::atom_group *group = nullptr;
-  std::string group_conf;
-
-  if (key_lookup(conf, group_key, &group_conf)) {
-    group = new cvm::atom_group(group_key);
-
-    if (b_try_scalable) {
-      if (is_available(f_cvc_scalable_com)
-          && is_enabled(f_cvc_com_based)
-          && !is_enabled(f_cvc_debug_gradient)) {
-        disable(f_cvc_explicit_gradient);
-        enable(f_cvc_scalable_com);
-        // The CVC makes the feature available;
-        // the atom group will enable it unless it needs to compute a rotational fit
-        group->provide(f_ag_scalable_com);
-      }
-
-      // TODO check for other types of parallelism here
-    }
-
-    if (group_conf.empty()) {
-      error_code |= cvm::error("Error: atom group \"" + group->key + "\" has no definition.\n",
-                               COLVARS_INPUT_ERROR);
-      delete group;
-      group = nullptr;
-      return group;
-    }
-
-    cvm::increase_depth();
-    error_code |= group->parse(group_conf);
-    if (error_code != COLVARS_OK) {
-      error_code |=
-          cvm::error("Error: in definition of atom group \"" + std::string(group_key) + "\".",
-                     COLVARS_INPUT_ERROR);
-      delete group;
-      group = nullptr;
-    } else {
-      register_atom_group(group);
-      error_code |= group->check_keywords(group_conf, group_key);
-    }
-    cvm::decrease_depth();
-
-  } else {
-
-    if (!optional) {
-      error_code |=
-          cvm::error("Error: atom group \"" + std::string(group_key) + "\" is required.\n",
-                     COLVARS_INPUT_ERROR);
-    }
-  }
-
-  return group;
 }
 
 
@@ -343,35 +270,6 @@ colvar::cvc::~cvc()
 {
   free_children_deps();
   remove_all_children();
-  for (size_t i = 0; i < atom_groups.size(); i++) {
-    if (atom_groups[i] != NULL) delete atom_groups[i];
-  }
-}
-
-
-void colvar::cvc::init_as_distance()
-{
-  x.type(colvarvalue::type_scalar);
-  enable(f_cvc_lower_boundary);
-  lower_boundary.type(colvarvalue::type_scalar);
-  lower_boundary.real_value = 0.0;
-  register_param("lowerBoundary", reinterpret_cast<void *>(&lower_boundary));
-}
-
-
-void colvar::cvc::init_as_angle()
-{
-  x.type(colvarvalue::type_scalar);
-  init_scalar_boundaries(0.0, 180.0);
-}
-
-
-void colvar::cvc::init_as_periodic_angle()
-{
-  x.type(colvarvalue::type_scalar);
-  enable(f_cvc_periodic);
-  period = 360.0;
-  init_scalar_boundaries(-180.0, 180.0);
 }
 
 
@@ -387,12 +285,6 @@ void colvar::cvc::init_scalar_boundaries(cvm::real lb, cvm::real ub)
   register_param("upperBoundary", reinterpret_cast<void *>(&upper_boundary));
 }
 
-
-void colvar::cvc::register_atom_group(cvm::atom_group *ag)
-{
-  atom_groups.push_back(ag);
-  add_child(ag);
-}
 
 
 colvarvalue const *colvar::cvc::get_param_grad(std::string const &param_name)
@@ -431,58 +323,8 @@ int colvar::cvc::set_param(std::string const &param_name,
 
 void colvar::cvc::read_data()
 {
-  size_t ig;
-  for (ig = 0; ig < atom_groups.size(); ig++) {
-    cvm::atom_group &atoms = *(atom_groups[ig]);
-    atoms.reset_atoms_data();
-    atoms.read_positions();
-    atoms.calc_required_properties();
-    // each atom group will take care of its own fitting_group, if defined
-  }
-
-////  Don't try to get atom velocities, as no back-end currently implements it
-//   if (tasks[task_output_velocity] && !tasks[task_fdiff_velocity]) {
-//     for (i = 0; i < cvcs.size(); i++) {
-//       for (ig = 0; ig < cvcs[i]->atom_groups.size(); ig++) {
-//         cvcs[i]->atom_groups[ig]->read_velocities();
-//       }
-//     }
-//   }
 }
 
-
-std::vector<std::vector<int> > colvar::cvc::get_atom_lists()
-{
-  std::vector<std::vector<int> > lists;
-
-  std::vector<cvm::atom_group *>::iterator agi = atom_groups.begin();
-  for ( ; agi != atom_groups.end(); ++agi) {
-    (*agi)->create_sorted_ids();
-    lists.push_back((*agi)->sorted_ids());
-  }
-  return lists;
-}
-
-
-void colvar::cvc::collect_gradients(std::vector<int> const &atom_ids, std::vector<cvm::rvector> &atomic_gradients)
-{
-  // Coefficient: d(a * x^n) = a * n * x^(n-1) * dx
-  cvm::real coeff = sup_coeff * cvm::real(sup_np) *
-    cvm::integer_power(value().real_value, sup_np-1);
-
-  for (size_t j = 0; j < atom_groups.size(); j++) {
-
-    cvm::atom_group &ag = *(atom_groups[j]);
-
-    // If necessary, apply inverse rotation to get atomic
-    // gradient in the laboratory frame
-    for (size_t k = 0; k < ag.size(); k++) {
-      size_t a = std::lower_bound(atom_ids.begin(), atom_ids.end(),
-				  ag[k].id) - atom_ids.begin();
-      atomic_gradients[a] += coeff * ag[k].grad;
-    }
-  }
-}
 
 
 void colvar::cvc::calc_force_invgrads()
@@ -500,13 +342,6 @@ void colvar::cvc::calc_Jacobian_derivative()
              COLVARS_NOT_IMPLEMENTED);
 }
 
-
-void colvar::cvc::calc_fit_gradients()
-{
-  for (size_t ig = 0; ig < atom_groups.size(); ig++) {
-    atom_groups[ig]->calc_fit_gradients();
-  }
-}
 
 
 void colvar::cvc::debug_gradients()

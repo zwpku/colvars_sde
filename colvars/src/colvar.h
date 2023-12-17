@@ -527,9 +527,6 @@ protected:
     acf_vel,
     /// Coordinate ACF, scalar product between x(0) and x(t)
     acf_coor,
-    /// \brief Coordinate ACF, second order Legendre polynomial
-    /// between x(0) and x(t) (does not work with scalar numbers)
-    acf_p2coor
   };
 
   /// Type of autocorrelation function (ACF)
@@ -543,11 +540,6 @@ protected:
   /// (does not work with scalar numbers)
   void calc_coor_acf(std::list<colvarvalue> &x_history,
                      colvarvalue const      &x);
-
-  /// \brief Coordinate ACF, second order Legendre polynomial between
-  /// x(0) and x(t) (does not work with scalar numbers)
-  void calc_p2coor_acf(std::list<colvarvalue> &x_history,
-                       colvarvalue const      &x);
 
   /// Calculate the auto-correlation function (ACF)
   int calc_acf();
@@ -581,12 +573,8 @@ public:
   // list of available collective variable components
 
   // scalar colvar components
-  class distance;
   class torchANN;
   class componentDisabled;
-
-  // non-scalar components
-  class cartesian;
 
   /// A global mapping of cvc names to the cvc constructors
   static const std::map<std::string, std::function<colvar::cvc *(const std::string &subcv_conf)>> &
@@ -606,13 +594,6 @@ protected:
   /// \brief Flags to enable or disable cvcs at next colvar evaluation
   std::vector<bool> cvc_flags;
 
-  /// \brief Initialize the sorted list of atom IDs for atoms involved
-  /// in all cvcs (called when enabling f_cv_collect_gradients)
-  void build_atom_list(void);
-
-  /// Name of scripted function to be used
-  std::string scripted_function;
-
   /// Current cvc values in the order requested by script
   /// when using scriptedFunction
   std::vector<const colvarvalue *> sorted_cvc_values;
@@ -623,25 +604,6 @@ protected:
 
   /// A global mapping of cvc names to the corresponding descriptions
   static std::map<std::string, std::string> global_cvc_desc_map;
-
-  /// Volmap numeric IDs, one for each CVC (-1 if not available)
-  std::vector<int> volmap_ids_;
-
-public:
-
-  /// \brief Sorted array of (zero-based) IDs for all atoms involved
-  std::vector<int> atom_ids;
-
-  /// \brief Array of atomic gradients collected from all cvcs
-  /// with appropriate components, rotations etc.
-  /// For scalar variables only!
-  std::vector<cvm::rvector> atomic_gradients;
-
-  /// \brief Get vector of vectors of atom IDs for all atom groups
-  virtual std::vector<std::vector<int> > get_atom_lists();
-
-  /// Volmap numeric IDs, one for each CVC (-1 if not available)
-  std::vector<int> const &get_volmap_ids();
 
 };
 

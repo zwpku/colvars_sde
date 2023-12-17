@@ -22,7 +22,6 @@
 #include <memory>
 
 #include "colvarmodule.h"
-#include "colvaratoms.h"
 #include "colvar.h"
 
 #ifdef TORCH
@@ -121,13 +120,6 @@ public:
   /// \brief Initialize dependency tree
   virtual int init_dependencies();
 
-  /// \brief Within the constructor, make a group parse its own
-  /// options from the provided configuration string
-  /// Returns reference to new group
-  cvm::atom_group *parse_group(std::string const &conf,
-                               char const *group_key,
-                               bool optional = false);
-
   /// \brief Parse options pertaining to total force calculation
   virtual int init_total_force_params(std::string const &conf);
 
@@ -160,9 +152,6 @@ public:
     cvc_features.clear();
   }
 
-  /// \brief Get vector of vectors of atom IDs for all atom groups
-  virtual std::vector<std::vector<int> > get_atom_lists();
-
   /// \brief Obtain data needed for the calculation for the backend
   virtual void read_data();
 
@@ -173,15 +162,8 @@ public:
   /// order to apply forces
   virtual void calc_gradients() {}
 
-  /// \brief Calculate the atomic fit gradients
-  void calc_fit_gradients();
-
   /// \brief Calculate finite-difference gradients alongside the analytical ones, for each Cartesian component
   virtual void debug_gradients();
-
-  /// \brief Calculate atomic gradients and add them to the corresponding item in gradient vector
-  /// May be overridden by CVCs that do not store their gradients in the classic way, see dihedPC
-  virtual void collect_gradients(std::vector<int> const &atom_ids, std::vector<cvm::rvector> &atomic_gradients);
 
   /// \brief Calculate the total force from the system using the
   /// inverse atomic gradients
@@ -258,13 +240,6 @@ public:
   /// \brief Wrap value (for periodic/symmetric cvcs)
   virtual void wrap(colvarvalue &x_unwrapped) const;
 
-  /// \brief Pointers to all atom groups, to let colvars collect info
-  /// e.g. atomic gradients
-  std::vector<cvm::atom_group *> atom_groups;
-
-  /// \brief Store a pointer to new atom group, and list as child for dependencies
-  void register_atom_group(cvm::atom_group *ag);
-
   /// Pointer to the gradient of parameter param_name
   virtual colvarvalue const *get_param_grad(std::string const &param_name);
 
@@ -304,15 +279,6 @@ protected:
   /// gradients): serves to calculate the phase space correction
   colvarvalue jd;
 
-  /// \brief Set data types for a scalar distance (convenience function)
-  void init_as_distance();
-
-  /// \brief Set data types for a bounded angle (0° to 180°)
-  void init_as_angle();
-
-  /// \brief Set data types for a periodic angle (-180° to 180°)
-  void init_as_periodic_angle();
-
   /// \brief Set two scalar boundaries (convenience function)
   void init_scalar_boundaries(cvm::real lb, cvm::real ub);
 
@@ -343,38 +309,6 @@ inline colvarvalue const & colvar::cvc::Jacobian_derivative() const
 {
   return jd;
 }
-
-
-
-/// \brief Colvar component: distance between the centers of mass of
-/// two groups (colvarvalue::type_scalar type, range [0:*))
-
-class colvar::distance
-  : public colvar::cvc
-{
-protected:
-  /// First atom group
-  cvm::atom_group  *group1;
-  /// Second atom group
-  cvm::atom_group  *group2;
-  /// Vector distance, cached to be recycled
-  cvm::rvector     dist_v;
-public:
-  distance(std::string const &conf);
-  distance();
-  virtual ~distance() {}
-  virtual void calc_value();
-  virtual void calc_gradients();
-  virtual void calc_force_invgrads();
-  virtual void calc_Jacobian_derivative();
-  virtual void apply_force(colvarvalue const &force);
-  virtual cvm::real dist2(colvarvalue const &x1,
-                          colvarvalue const &x2) const;
-  virtual colvarvalue dist2_lgrad(colvarvalue const &x1,
-                                  colvarvalue const &x2) const;
-  virtual colvarvalue dist2_rgrad(colvarvalue const &x1,
-                                  colvarvalue const &x2) const;
-};
 
 class colvar::componentDisabled
   : public colvar::cvc
