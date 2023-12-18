@@ -166,7 +166,6 @@ int colvar::cvc::init_dependencies() {
 
     init_feature(f_cvc_active, "active", f_type_dynamic);
 //     The dependency below may become useful if we use dynamic atom groups
-//     require_feature_children(f_cvc_active, f_ag_active);
 
     init_feature(f_cvc_periodic, "periodic", f_type_static);
 
@@ -179,7 +178,6 @@ int colvar::cvc::init_dependencies() {
     init_feature(f_cvc_gradient, "gradient", f_type_dynamic);
 
     init_feature(f_cvc_explicit_gradient, "explicit_gradient", f_type_static);
-    require_feature_children(f_cvc_explicit_gradient, f_ag_explicit_gradient);
 
     init_feature(f_cvc_inv_gradient, "inverse_gradient", f_type_dynamic);
     require_feature_self(f_cvc_inv_gradient, f_cvc_gradient);
@@ -194,15 +192,8 @@ int colvar::cvc::init_dependencies() {
     // Compute total force on first site only to avoid unwanted
     // coupling to other colvars (see e.g. Ciccotti et al., 2005)
     init_feature(f_cvc_one_site_total_force, "total_force_from_one_group", f_type_user);
-    require_feature_self(f_cvc_one_site_total_force, f_cvc_com_based);
-
-    init_feature(f_cvc_com_based, "function_of_centers_of_mass", f_type_static);
 
     init_feature(f_cvc_pbc_minimum_image, "use_minimum-image_with_PBCs", f_type_user);
-
-    // TODO only enable this when f_ag_scalable can be turned on for a pre-initialized group
-    // require_feature_children(f_cvc_scalable, f_ag_scalable);
-    // require_feature_children(f_cvc_scalable_com, f_ag_scalable_com);
 
     // check that everything is initialized
     for (i = 0; i < colvardeps::f_cvc_ntot; i++) {
@@ -225,7 +216,6 @@ int colvar::cvc::init_dependencies() {
   // Each cvc specifies what other features are available
   feature_states[f_cvc_active].available = true;
   feature_states[f_cvc_gradient].available = true;
-  feature_states[f_cvc_collect_atom_ids].available = true;
 
   // CVCs are enabled from the start - get disabled based on flags
   enable(f_cvc_active);

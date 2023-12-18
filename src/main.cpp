@@ -36,6 +36,7 @@ int main()
     x[0] += -1.0 * grad[0] * delta_t + r;
     x[1] += -1.0 * grad[1] * delta_t + r;
 
+    proxy->update_data(step);
     proxy->calculateForces(x, bf);
 
     x[0] += bf[0] * delta_t ;

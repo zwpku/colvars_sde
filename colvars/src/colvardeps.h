@@ -267,8 +267,6 @@ public:
     /// \brief Collect atomic gradient data from all cvcs into vector
     /// atomic_gradient
     f_cv_collect_gradient,
-    /// \brief Build list of atoms involved in CV calculation
-    f_cv_collect_atom_ids,
     /// \brief Calculate the velocity with finite differences
     f_cv_fdiff_velocity,
     /// \brief The total force is calculated, projecting the atomic
@@ -358,36 +356,8 @@ public:
     /// With PBCs, minimum-image convention will be used for distances
     /// (does not affect the periodicity of CVC values, e.g. angles)
     f_cvc_pbc_minimum_image,
-    /// This CVC is a function of centers of mass
-    f_cvc_com_based,
-    /// This CVC can be computed in parallel
-    f_cvc_scalable,
-    /// Centers-of-mass used in this CVC can be computed in parallel
-    f_cvc_scalable_com,
-    /// \brief Build list of atoms involved in CVC calculation
-    f_cvc_collect_atom_ids,
     /// Number of CVC features
     f_cvc_ntot
-  };
-
-  enum features_atomgroup {
-    f_ag_active,
-    f_ag_center,
-    f_ag_center_origin,
-    f_ag_rotate,
-    f_ag_fitting_group,
-    /// Perform a standard minimum msd fit for given atoms
-    /// ie. not using refpositionsgroup
-//     f_ag_min_msd_fit,
-    /// \brief Does not have explicit atom gradients from parent CVC
-    f_ag_explicit_gradient,
-    f_ag_fit_gradients,
-    f_ag_atom_forces,
-    f_ag_scalable,
-    f_ag_scalable_com,
-    /// \brief Build list of atoms involved in atom group
-    f_ag_collect_atom_ids,
-    f_ag_ntot
   };
 
   /// Initialize dependency tree for object of a derived class

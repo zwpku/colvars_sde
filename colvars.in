@@ -10,13 +10,8 @@ colvar {
   extendedFluctuation 0.1
   extendedTimeConstant 200
 
-  distance {
-    group1 { 
-      atomnumbers 5
-    }
-    group2 { 
-      atomnumbers 7
-    }
+  torchann {
+    modelFile identity.pt
   }
 }
 

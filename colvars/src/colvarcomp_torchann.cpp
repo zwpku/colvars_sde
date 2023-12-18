@@ -19,7 +19,6 @@ colvar::torchANN::torchANN(std::string const &conf): cvc(conf) {
   set_function_type("torchANN");
 
   x.type(colvarvalue::type_scalar);
-  enable(f_cvc_scalar);
 
   if (period != 0.0) {
     enable(f_cvc_periodic);
@@ -45,17 +44,7 @@ colvar::torchANN::torchANN(std::string const &conf): cvc(conf) {
   get_keyval(conf, "doubleInputTensor", use_double_input, false);
   //get_keyval(conf, "useGPU", use_gpu, false);
 
-  cvc_indices.resize(cv.size(),0);
-
-  size_t num_inputs = 0;
-  // compute total number of inputs of neural network 
-  for (size_t i_cv = 0; i_cv < cv.size(); ++i_cv) 
-  {
-    num_inputs += cv[i_cv]->value().size() ;
-    if (i_cv < cv.size() - 1) 
-      cvc_indices[i_cv+1] = num_inputs;
-  }
-  cvm::log("Input dimension of model: " + cvm::to_str(num_inputs));
+  //cvm::log("Input dimension of model: " + cvm::to_str(num_inputs));
 
   // initialize the input tensor 
   auto options = torch::TensorOptions().dtype(torch::kFloat32).requires_grad(true);
@@ -68,6 +57,7 @@ colvar::torchANN::torchANN(std::string const &conf): cvc(conf) {
     cvm::log("Model's dtype: kFloat32.");
   }
 
+  int num_inputs = 10;
   input_tensor = torch::zeros({1,(long int) num_inputs}, options);
 
   try { // test the model 
@@ -85,14 +75,10 @@ colvar::torchANN::~torchANN() {
 
 void colvar::torchANN::calc_value() {
 
+  /*
   for (size_t i_cv = 0; i_cv < cv.size(); ++i_cv) 
     cv[i_cv]->calc_value();
  
-  /*
-  if (use_gpu)  
-    input_tensor = input_tensor.to(torch::kCPU);
-  */
-
   // set input tensor with no_grad 
   {
     torch::NoGradGuard no_grad;
@@ -107,6 +93,7 @@ void colvar::torchANN::calc_value() {
       }
     }
   }
+    */
 
   /*
   if (use_gpu) 
@@ -132,6 +119,7 @@ void colvar::torchANN::calc_value() {
 }
 
 void colvar::torchANN::calc_gradients() {
+  /*
   for (size_t i_cv = 0; i_cv < cv.size(); ++i_cv) {
     cv[i_cv]->calc_gradients();
     if (cv[i_cv]->is_enabled(f_cvc_explicit_gradient)) {
@@ -149,9 +137,11 @@ void colvar::torchANN::calc_gradients() {
       }
     }
   }
+  */
 }
 
 void colvar::torchANN::apply_force(colvarvalue const &force) {
+  /*
 
   for (size_t i_cv = 0; i_cv < cv.size(); ++i_cv) {
     // If this CV uses explicit gradients, then atomic gradients is already calculated
@@ -173,6 +163,7 @@ void colvar::torchANN::apply_force(colvarvalue const &force) {
       cv[i_cv]->apply_force(cv_force);
     }
   }
+  */
 }
 
 // Nearest-image convection is handled in the same way as in colvar::distance_z

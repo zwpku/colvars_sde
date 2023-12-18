@@ -659,12 +659,8 @@ int colvar::init_dependencies() {
 
     init_feature(f_cv_collect_gradient, "collect_gradient", f_type_dynamic);
     require_feature_self(f_cv_collect_gradient, f_cv_gradient);
-    require_feature_self(f_cv_collect_gradient, f_cv_collect_atom_ids);
     // The following exclusions could be lifted by implementing the feature
     require_feature_children(f_cv_collect_gradient, f_cvc_explicit_gradient);
-
-    init_feature(f_cv_collect_atom_ids, "collect_atom_ids", f_type_dynamic);
-    require_feature_children(f_cv_collect_atom_ids, f_cvc_collect_atom_ids);
 
     init_feature(f_cv_fdiff_velocity, "velocity_from_finite_differences", f_type_dynamic);
 
