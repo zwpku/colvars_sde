@@ -247,11 +247,7 @@ private:
   /// Array of collective variables
   std::vector<colvar *> colvars_active;
 
-  /// Collective variables to be calculated on different threads;
-  /// colvars with multple items (e.g. multiple active CVCs) are duplicated
-  std::vector<colvar *> colvars_smp;
-  /// Indexes of the items to calculate for each colvar
-  std::vector<int> colvars_smp_items;
+public:
 
   /// Array of collective variables
   std::vector<colvar *> *variables();
@@ -267,13 +263,6 @@ private:
 
   /// Collective variables with the active flag on
   std::vector<colvar *> *variables_active();
-
-  /// Collective variables to be calculated on different threads;
-  /// colvars with multple items (e.g. multiple active CVCs) are duplicated
-  std::vector<colvar *> *variables_active_smp();
-
-  /// Indexes of the items to calculate for each colvar
-  std::vector<int> *variables_active_smp_items();
 
   /// Array of collective variable biases
   std::vector<colvarbias *> biases;

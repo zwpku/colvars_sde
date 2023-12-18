@@ -62,9 +62,6 @@ void colvarproxy_sde::init(t_inputrec *ir, int64_t step,
 
   restart_output_prefix_str = prefix + ".restart";
 
-  // Retrieve masses and charges from input file
-  updated_masses_ = updated_charges_ = true;
-
   // Get timestep 
   set_integration_timestep(ir->delta_t);
 

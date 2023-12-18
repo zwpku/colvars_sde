@@ -14,6 +14,7 @@
 #include "colvar.h"
 #include "colvarcomp.h"
 
+#include "colvarproxy.h"
 
 
 colvar::cvc::cvc()
@@ -199,19 +200,6 @@ int colvar::cvc::init_dependencies() {
 
     init_feature(f_cvc_pbc_minimum_image, "use_minimum-image_with_PBCs", f_type_user);
 
-    init_feature(f_cvc_scalable, "scalable_calculation", f_type_dynamic);
-    require_feature_self(f_cvc_scalable_com, f_cvc_scalable);
-    // CVC cannot compute atom-level gradients on rank 0 if colvar computation is distributed
-    exclude_feature_self(f_cvc_scalable, f_cvc_explicit_gradient);
-
-    init_feature(f_cvc_scalable_com, "scalable_calculation_of_centers_of_mass", f_type_static);
-    require_feature_self(f_cvc_scalable_com, f_cvc_com_based);
-    // CVC cannot compute atom-level gradients if computed on atom group COM
-    exclude_feature_self(f_cvc_scalable_com, f_cvc_explicit_gradient);
-
-    init_feature(f_cvc_collect_atom_ids, "collect_atom_ids", f_type_dynamic);
-    require_feature_children(f_cvc_collect_atom_ids, f_ag_collect_atom_ids);
-
     // TODO only enable this when f_ag_scalable can be turned on for a pre-initialized group
     // require_feature_children(f_cvc_scalable, f_ag_scalable);
     // require_feature_children(f_cvc_scalable_com, f_ag_scalable_com);
@@ -250,10 +238,6 @@ int colvar::cvc::init_dependencies() {
 
   // Features that are implemented by default if their requirements are
   feature_states[f_cvc_one_site_total_force].available = true;
-
-  // Features That are implemented only for certain simulation engine configurations
-  feature_states[f_cvc_scalable_com].available = (cvm::proxy->scalable_group_coms() == COLVARS_OK);
-  feature_states[f_cvc_scalable].available = feature_states[f_cvc_scalable_com].available;
 
   return COLVARS_OK;
 }

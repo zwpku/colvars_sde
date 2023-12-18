@@ -37,52 +37,6 @@
 struct omp_lock_t;
 #endif
 
-/// \brief Methods for SMP parallelization
-class colvarproxy_smp {
-
-public:
-
-  /// Constructor
-  colvarproxy_smp();
-
-  /// Destructor
-  virtual ~colvarproxy_smp();
-
-  /// Whether threaded parallelization should be used (TODO: make this a
-  /// cvm::deps feature)
-  bool b_smp_active;
-
-  /// Whether threaded parallelization is available (TODO: make this a cvm::deps feature)
-  virtual int check_smp_enabled();
-
-  /// Distribute calculation of colvars (and their components) across threads
-  virtual int smp_colvars_loop();
-
-  /// Distribute calculation of biases across threads
-  virtual int smp_biases_loop();
-
-  /// Index of this thread
-  virtual int smp_thread_id();
-
-  /// Number of threads sharing this address space
-  virtual int smp_num_threads();
-
-  /// Lock the proxy's shared data for access by a thread, if threads are implemented; if not implemented, does nothing
-  virtual int smp_lock();
-
-  /// Attempt to lock the proxy's shared data
-  virtual int smp_trylock();
-
-  /// Release the lock
-  virtual int smp_unlock();
-
-protected:
-
-  /// Lock state for OpenMP
-  omp_lock_t *omp_lock_state;
-};
-
-
 /// \brief Methods for multiple-replica communication
 class colvarproxy_replicas {
 
@@ -121,7 +75,6 @@ public:
 /// This is the base class: each engine is supported by a derived class.
 class colvarproxy
   : public colvarproxy_system,
-    public colvarproxy_smp,
     public colvarproxy_replicas,
     public colvarproxy_io
 {

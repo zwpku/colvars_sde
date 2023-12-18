@@ -21,6 +21,8 @@
 #include "colvarbias.h"
 #include "colvars_memstream.h"
 
+#include "colvarproxy.h"
+
 
 
 std::map<std::string, std::function<colvar::cvc *(const std::string &conf)>>
@@ -495,7 +497,7 @@ int colvar::init_components_type(const std::string& conf, const char* def_config
 
 void colvar::define_component_types()
 {
-  colvarproxy *proxy = cvm::main()->proxy;
+//  colvarproxy *proxy = cvm::main()->proxy;
 
 #ifdef TORCH
   add_component_type<torchANN>("CV defined by PyTorch artifical neural network models", "torchANN");
@@ -999,7 +1001,6 @@ int colvar::calc_cvc_gradients(int first_cvc, size_t num_cvcs)
       (cvcs[i])->calc_gradients();
       // if requested, propagate (via chain rule) the gradients above
       // to the atoms used to define the roto-translation
-     (cvcs[i])->calc_fit_gradients();
       if ((cvcs[i])->is_enabled(f_cvc_debug_gradient))
         (cvcs[i])->debug_gradients();
     }
@@ -1016,6 +1017,7 @@ int colvar::calc_cvc_gradients(int first_cvc, size_t num_cvcs)
 
 int colvar::collect_cvc_gradients()
 {
+  /*
   size_t i;
   if (is_enabled(f_cv_collect_gradient)) {
     // Collect the atomic gradients inside colvar object
@@ -1027,6 +1029,7 @@ int colvar::collect_cvc_gradients()
       cvcs[i]->collect_gradients(atom_ids, atomic_gradients);
     }
   }
+  */
   return COLVARS_OK;
 }
 

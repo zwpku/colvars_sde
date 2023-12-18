@@ -18,140 +18,6 @@
 #include "colvarmodule_utils.h"
 
 
-colvarproxy_smp::colvarproxy_smp()
-{
-  b_smp_active = true; // May be disabled by user option
-  omp_lock_state = NULL;
-#if defined(_OPENMP)
-  if (omp_get_thread_num() == 0) {
-    omp_lock_state = new omp_lock_t;
-    omp_init_lock(omp_lock_state);
-  }
-#endif
-}
-
-
-colvarproxy_smp::~colvarproxy_smp()
-{
-#if defined(_OPENMP)
-  if (omp_get_thread_num() == 0) {
-    if (omp_lock_state) {
-      delete omp_lock_state;
-    }
-  }
-#endif
-}
-
-
-int colvarproxy_smp::check_smp_enabled()
-{
-#if defined(_OPENMP)
-  if (b_smp_active) {
-    return COLVARS_OK;
-  }
-  return COLVARS_ERROR;
-#else
-  return COLVARS_NOT_IMPLEMENTED;
-#endif
-}
-
-
-int colvarproxy_smp::smp_colvars_loop()
-{
-#if defined(_OPENMP)
-  colvarmodule *cv = cvm::main();
-  colvarproxy *proxy = cv->proxy;
-#pragma omp parallel for
-  for (size_t i = 0; i < cv->variables_active_smp()->size(); i++) {
-    colvar *x = (*(cv->variables_active_smp()))[i];
-    int x_item = (*(cv->variables_active_smp_items()))[i];
-    if (cvm::debug()) {
-      cvm::log("["+cvm::to_str(proxy->smp_thread_id())+"/"+
-               cvm::to_str(proxy->smp_num_threads())+
-               "]: calc_colvars_items_smp(), i = "+cvm::to_str(i)+", cv = "+
-               x->name+", cvc = "+cvm::to_str(x_item)+"\n");
-    }
-    x->calc_cvcs(x_item, 1);
-  }
-  return cvm::get_error();
-#else
-  return COLVARS_NOT_IMPLEMENTED;
-#endif
-}
-
-
-int colvarproxy_smp::smp_biases_loop()
-{
-#if defined(_OPENMP)
-  colvarmodule *cv = cvm::main();
-#pragma omp parallel
-  {
-#pragma omp for
-    for (size_t i = 0; i < cv->biases_active()->size(); i++) {
-      colvarbias *b = (*(cv->biases_active()))[i];
-      if (cvm::debug()) {
-        cvm::log("Calculating bias \""+b->name+"\" on thread "+
-                 cvm::to_str(smp_thread_id())+"\n");
-      }
-      b->update();
-    }
-  }
-  return cvm::get_error();
-#else
-  return COLVARS_NOT_IMPLEMENTED;
-#endif
-}
-
-
-int colvarproxy_smp::smp_thread_id()
-{
-#if defined(_OPENMP)
-  return omp_get_thread_num();
-#else
-  return -1;
-#endif
-}
-
-
-int colvarproxy_smp::smp_num_threads()
-{
-#if defined(_OPENMP)
-  return omp_get_max_threads();
-#else
-  return -1;
-#endif
-}
-
-
-int colvarproxy_smp::smp_lock()
-{
-#if defined(_OPENMP)
-  omp_set_lock(omp_lock_state);
-#endif
-  return COLVARS_OK;
-}
-
-
-int colvarproxy_smp::smp_trylock()
-{
-#if defined(_OPENMP)
-  return omp_test_lock(omp_lock_state) ? COLVARS_OK : COLVARS_ERROR;
-#else
-  return COLVARS_OK;
-#endif
-}
-
-
-int colvarproxy_smp::smp_unlock()
-{
-#if defined(_OPENMP)
-  omp_unset_lock(omp_lock_state);
-#endif
-  return COLVARS_OK;
-}
-
-
-
 colvarproxy::colvarproxy()
 {
   colvars = NULL;
@@ -179,8 +45,7 @@ colvarproxy::~colvarproxy()
 
 bool colvarproxy::io_available()
 {
-  return (check_smp_enabled() == COLVARS_OK && smp_thread_id() == 0) ||
-    (check_smp_enabled() != COLVARS_OK);
+  return true;
 }
 
 
@@ -252,9 +117,6 @@ int colvarproxy::update_output()
 
 int colvarproxy::end_of_step()
 {
-  // Disable flags that Colvars doesn't need any more
-  updated_masses_ = updated_charges_ = false;
-
   if (cached_alch_lambda_changed) {
     send_alch_lambda();
     cached_alch_lambda_changed = false;

@@ -104,16 +104,6 @@ colvarmodule::colvarmodule(colvarproxy *proxy_in)
            "  https://doi.org/10.1080/00268976.2013.813594\n"
            "as well as all other papers listed below for individual features used.\n");
 
-  if (proxy->check_smp_enabled() == COLVARS_NOT_IMPLEMENTED) {
-    cvm::log("SMP parallelism is not available in this build.\n");
-  } else {
-    if (proxy->check_smp_enabled() == COLVARS_OK) {
-      cvm::log("SMP parallelism is enabled (num threads = " + to_str(proxy->smp_num_threads()) + ").\n");
-    } else {
-      cvm::log("SMP parallelism is available in this build but not enabled.\n");
-    }
-  }
-
 #if (__cplusplus >= 201103L)
   cvm::log("This version was built with the C++11 standard or higher.\n");
 #else
@@ -161,17 +151,6 @@ std::vector<colvar *> *colvarmodule::variables_active()
   return &colvars_active;
 }
 
-
-std::vector<colvar *> *colvarmodule::variables_active_smp()
-{
-  return &colvars_smp;
-}
-
-
-std::vector<int> *colvarmodule::variables_active_smp_items()
-{
-  return &colvars_smp_items;
-}
 
 
 std::vector<colvarbias *> *colvarmodule::biases_active()
@@ -338,22 +317,6 @@ int colvarmodule::parse_global_params(std::string const &conf)
   // TODO document and then echo this keyword
   parse->get_keyval(conf, "logLevel", log_level_, log_level_,
                     colvarparse::parse_silent);
-
-  {
-    std::string index_file_name;
-    size_t pos = 0;
-    while (parse->key_lookup(conf, "indexFile", &index_file_name, &pos)) {
-      cvm::log("# indexFile = \""+index_file_name+"\"\n");
-      error_code |= read_index_file(index_file_name.c_str());
-      index_file_name.clear();
-    }
-  }
-
-  if (parse->get_keyval(conf, "smp", proxy->b_smp_active, proxy->b_smp_active)) {
-    if (proxy->b_smp_active == false) {
-      cvm::log("SMP parallelism has been disabled.\n");
-    }
-  }
 
   bool b_analysis = true;
   if (parse->get_keyval(conf, "analysis", b_analysis, true, colvarparse::parse_silent)) {
@@ -804,54 +767,15 @@ int colvarmodule::calc_colvars()
     }
   }
 
-  // if SMP support is available, split up the work
-  if (proxy->check_smp_enabled() == COLVARS_OK) {
-
-    // first, calculate how much work (currently, how many active CVCs) each colvar has
-
-    variables_active_smp()->clear();
-    variables_active_smp_items()->clear();
-
-    variables_active_smp()->reserve(variables_active()->size());
-    variables_active_smp_items()->reserve(variables_active()->size());
-
-    // set up a vector containing all components
-    cvm::increase_depth();
-    for (cvi = variables_active()->begin(); cvi != variables_active()->end(); cvi++) {
-
-      error_code |= (*cvi)->update_cvc_flags();
-
-      size_t num_items = (*cvi)->num_active_cvcs();
-      variables_active_smp()->reserve(variables_active_smp()->size() + num_items);
-      variables_active_smp_items()->reserve(variables_active_smp_items()->size() + num_items);
-      for (size_t icvc = 0; icvc < num_items; icvc++) {
-        variables_active_smp()->push_back(*cvi);
-        variables_active_smp_items()->push_back(icvc);
-      }
+  // calculate colvars one at a time
+  cvm::increase_depth();
+  for (cvi = variables_active()->begin(); cvi != variables_active()->end(); cvi++) {
+    error_code |= (*cvi)->calc();
+    if (cvm::get_error()) {
+      return COLVARS_ERROR;
     }
-    cvm::decrease_depth();
-
-    // calculate colvar components in parallel
-    error_code |= proxy->smp_colvars_loop();
-
-    cvm::increase_depth();
-    for (cvi = variables_active()->begin(); cvi != variables_active()->end(); cvi++) {
-      error_code |= (*cvi)->collect_cvc_data();
-    }
-    cvm::decrease_depth();
-
-  } else {
-
-    // calculate colvars one at a time
-    cvm::increase_depth();
-    for (cvi = variables_active()->begin(); cvi != variables_active()->end(); cvi++) {
-      error_code |= (*cvi)->calc();
-      if (cvm::get_error()) {
-        return COLVARS_ERROR;
-      }
-    }
-    cvm::decrease_depth();
   }
+  cvm::decrease_depth();
 
   error_code |= cvm::get_error();
   return error_code;
@@ -894,25 +818,16 @@ int colvarmodule::calc_biases()
     }
   }
 
-  // If SMP support is available, split up the work (unless biases need to use main thread's memory)
-  if (proxy->check_smp_enabled() == COLVARS_OK && !biases_need_io) {
-
-      // calculate biases in parallel
-      error_code |= proxy->smp_biases_loop();
-
-  } else {
-
-    // Straight loop over biases on a single thread
-    cvm::increase_depth();
-    for (bi = biases_active()->begin(); bi != biases_active()->end(); bi++) {
-      error_code |= (*bi)->update();
-      if (cvm::get_error()) {
-        cvm::decrease_depth();
-        return error_code;
-      }
+  // Straight loop over biases on a single thread
+  cvm::increase_depth();
+  for (bi = biases_active()->begin(); bi != biases_active()->end(); bi++) {
+    error_code |= (*bi)->update();
+    if (cvm::get_error()) {
+      cvm::decrease_depth();
+      return error_code;
     }
-    cvm::decrease_depth();
   }
+  cvm::decrease_depth();
 
   for (bi = biases_active()->begin(); bi != biases_active()->end(); bi++) {
     total_bias_energy += (*bi)->get_energy();
@@ -1142,29 +1057,25 @@ int colvarmodule::update_engine_parameters()
 
 colvarmodule::~colvarmodule()
 {
-  if ((proxy->smp_thread_id() < 0) ||  // not using threads
-      (proxy->smp_thread_id() == 0)) { // or this is thread 0
+  reset();
 
-    reset();
+  // Delete contents of static arrays
+  colvarbias::delete_features();
+  colvar::delete_features();
+  colvar::cvc::delete_features();
 
-    // Delete contents of static arrays
-    colvarbias::delete_features();
-    colvar::delete_features();
-    colvar::cvc::delete_features();
+  delete
+    reinterpret_cast<std::map<std::string, int> *>(num_biases_types_used_);
+  num_biases_types_used_ = NULL;
 
-    delete
-      reinterpret_cast<std::map<std::string, int> *>(num_biases_types_used_);
-    num_biases_types_used_ = NULL;
+  delete parse;
+  parse = NULL;
 
-    delete parse;
-    parse = NULL;
+  delete usage_;
+  usage_ = NULL;
 
-    delete usage_;
-    usage_ = NULL;
-
-    // The proxy object will be deallocated last (if at all)
-    proxy = NULL;
-  }
+  // The proxy object will be deallocated last (if at all)
+  proxy = NULL;
 }
 
 
@@ -1191,8 +1102,6 @@ int colvarmodule::reset()
     delete *cvi; // the colvar destructor updates the colvars array
   }
   colvars.clear();
-
-  reset_index_groups();
 
   proxy->flush_output_streams();
   proxy->reset();
@@ -1837,18 +1746,6 @@ size_t & colvarmodule::depth()
 {
   // NOTE: do not call log() or error() here, to avoid recursion
   colvarmodule *cv = cvm::main();
-  if (proxy->check_smp_enabled() == COLVARS_OK) {
-    int const nt = proxy->smp_num_threads();
-    if (int(cv->depth_v.size()) != nt) {
-      proxy->smp_lock();
-      // update array of depths
-      if (cv->depth_v.size() > 0) { cv->depth_s = cv->depth_v[0]; }
-      cv->depth_v.clear();
-      cv->depth_v.assign(nt, cv->depth_s);
-      proxy->smp_unlock();
-    }
-    return cv->depth_v[proxy->smp_thread_id()];
-  }
   return cv->depth_s;
 }
 
@@ -1859,9 +1756,7 @@ void colvarmodule::set_error_bits(int code)
     cvm::log("Error: set_error_bits() received negative error code.\n");
     return;
   }
-  proxy->smp_lock();
   errorCode |= code | COLVARS_ERROR;
-  proxy->smp_unlock();
 }
 
 
@@ -1873,9 +1768,7 @@ bool colvarmodule::get_error_bit(int code)
 
 void colvarmodule::clear_error()
 {
-  proxy->smp_lock();
   errorCode = COLVARS_OK;
-  proxy->smp_unlock();
   proxy->clear_error_msgs();
 }
 

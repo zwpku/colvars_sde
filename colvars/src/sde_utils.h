@@ -6,6 +6,7 @@ struct t_inputrec
     double delta_t;
     double ref_t;
     int64_t ld_seed;
+    int dim;
 };
 
 class Force 
