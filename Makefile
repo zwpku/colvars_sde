@@ -10,6 +10,8 @@ TORCHINCFLAGS = -I$(TORCHDIR)/include -I$(TORCHDIR)/include/torch/csrc/api/inclu
 EXTRACOLVARSFLAGS = -std=c++17 -DTORCH $(TORCHINCFLAGS)
 EXTRALINKLIBS = -Wl,-rpath,$(TORCHDIR)/lib -L$(TORCHDIR)/lib -ltorch -ltorch_cpu -lc10
 
+.PHONY: $(COLVARS_LIB)
+
 default: main
 
 main: 	$(MAIN_LIB) $(COLVARS_LIB) 

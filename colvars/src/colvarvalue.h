@@ -393,7 +393,7 @@ inline int colvarvalue::check_types_assign(colvarvalue::Type const &vt1,
     return COLVARS_OK;
   }
 
-  if (vt1 != vt2) {
+  if ((vt1 != type_notset) && (vt1 != vt2)) {
     cvm::error("Trying to assign a colvar value with type \""+
 	       type_desc(vt2)+"\" to one with type \""+
 	       type_desc(vt1)+"\".\n");

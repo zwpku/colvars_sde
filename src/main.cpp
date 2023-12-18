@@ -14,6 +14,7 @@ int main()
   sde_inp->ref_t = 300.0;
   sde_inp->delta_t = 0.1;
   sde_inp->ld_seed = 300;
+  sde_inp->dim = 2;
 
   std::string prefix, filename_config("./colvars.in");
 

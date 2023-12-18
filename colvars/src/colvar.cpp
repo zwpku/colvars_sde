@@ -1153,6 +1153,7 @@ int colvar::calc_colvar_properties()
     // just calculated from the cvcs
     // Do the same if no simulation is running (eg. VMD postprocessing)
     if ((cvm::step_relative() == 0 && !after_restart) || x_ext.type() == colvarvalue::type_notset || !cvm::proxy->simulation_running()) {
+
       x_ext = x;
       if (is_enabled(f_cv_reflecting_lower_boundary) && x_ext < lower_boundary) {
         cvm::log("Warning: initializing extended coordinate to reflective lower boundary, as colvar value is below.");
