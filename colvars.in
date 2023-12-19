@@ -3,12 +3,12 @@ colvarsRestartFrequency 10000
 
 colvar {
   name d
-  lowerBoundary -8.0
-  upperBoundary 1.8
-  width 0.2
+  lowerBoundary -2.0
+  upperBoundary 4.0
+  width 0.1
   extendedLagrangian on
   extendedFluctuation 0.1
-  extendedTimeConstant 200
+  extendedTimeConstant 10
 
   torchann {
     modelFile identity.pt

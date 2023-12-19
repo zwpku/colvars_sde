@@ -9,10 +9,14 @@ void force(std::vector<double> &x, std::vector<double> &grad)
 
 int main()
 {
+  double delta_t = 0.01, r;
+  int n_steps = 20000;
+  std::vector<double> x(2), grad(2), bf(2);
+
   t_inputrec *sde_inp = new t_inputrec;
 
   sde_inp->ref_t = 300.0;
-  sde_inp->delta_t = 0.1;
+  sde_inp->delta_t = delta_t;
   sde_inp->ld_seed = 300;
   sde_inp->dim = 2;
 
@@ -21,9 +25,7 @@ int main()
   colvarproxy_sde * proxy = new colvarproxy_sde();
   proxy->init(sde_inp, 0, prefix, filename_config);
 
-  double delta_t = 0.1, r;
-  int n_steps = 5;
-  std::vector<double> x(2), grad(2), bf(2);
+  double coeff = sqrt(2 * proxy->boltzmann() * sde_inp->ref_t * delta_t);
 
   // random number generation.
   std::default_random_engine rng;   
@@ -34,8 +36,9 @@ int main()
     force(x, grad);
 
     r = normal_distribution(rng);
-    x[0] += -1.0 * grad[0] * delta_t + r;
-    x[1] += -1.0 * grad[1] * delta_t + r;
+    x[0] += -1.0 * grad[0] * delta_t + coeff * r;
+    r = normal_distribution(rng);
+    x[1] += -1.0 * grad[1] * delta_t + coeff * r;
 
     proxy->update_data(step);
     proxy->calculateForces(x, bf);
