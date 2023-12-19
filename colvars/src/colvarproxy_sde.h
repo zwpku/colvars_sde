@@ -24,12 +24,6 @@ protected:
   std::default_random_engine rng;   
   std::normal_distribution<double> *normal_distribution;
 
-  //! Total number of Colvars atoms
-  int        n_dim = 0;
-
-  std::vector<cvm::real> positions;
-  std::vector<cvm::real> colvar_forces;
-
 public:
   colvarproxy_sde();
   ~colvarproxy_sde();

@@ -115,7 +115,22 @@ public:
     return false;
   }
 
+  inline int get_dim() const {
+    return n_dim;
+  }
+
+  inline cvm::vector1d<cvm::real> get_positions() const {
+    return positions;
+  }
+
+  cvm::vector1d<cvm::real> colvar_forces;
+
 protected:
+
+  //! Total number of Colvars atoms
+  size_t n_dim = 0;
+
+  cvm::vector1d<cvm::real> positions;
 
   /// Next value of lambda to be sent to back-end
   cvm::real cached_alch_lambda;
@@ -158,6 +173,7 @@ protected:
 
   /// Type of boundary conditions
   Boundaries_type boundaries_type;
+
 };
 
 #endif

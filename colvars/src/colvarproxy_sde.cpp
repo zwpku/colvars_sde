@@ -186,7 +186,7 @@ void colvarproxy_sde::calculateForces( std::vector<double> &x, std::vector<doubl
   }
 
   // Pass the applied forces to backend
-  for (int i = 0; i < n_dim; i++)
+  for (size_t i = 0; i < n_dim; i++)
     bf[i] = colvar_forces[i];
 
   return;

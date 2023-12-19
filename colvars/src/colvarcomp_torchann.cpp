@@ -14,6 +14,7 @@
 #include "colvarvalue.h"
 #include "colvarparse.h"
 #include "colvarcomp.h"
+#include "colvarproxy.h"
 
 colvar::torchANN::torchANN(std::string const &conf): cvc(conf) {
   set_function_type("torchANN");
@@ -57,7 +58,9 @@ colvar::torchANN::torchANN(std::string const &conf): cvc(conf) {
     cvm::log("Model's dtype: kFloat32.");
   }
 
-  int num_inputs = 10;
+  int num_inputs = 0;
+  num_inputs = cvm::main()->proxy->get_dim();
+  grad.resize(num_inputs);
   input_tensor = torch::zeros({1,(long int) num_inputs}, options);
 
   try { // test the model 
@@ -75,42 +78,21 @@ colvar::torchANN::~torchANN() {
 
 void colvar::torchANN::calc_value() {
 
-  /*
-  for (size_t i_cv = 0; i_cv < cv.size(); ++i_cv) 
-    cv[i_cv]->calc_value();
- 
-  // set input tensor with no_grad 
   {
     torch::NoGradGuard no_grad;
-    size_t l = 0;
-    for (size_t i_cv = 0; i_cv < cv.size(); ++i_cv) {
-      const colvarvalue& current_cv_value = cv[i_cv]->value();
-      if (current_cv_value.type() == colvarvalue::type_scalar) {
-	input_tensor[0][l++] = cv[i_cv]->sup_coeff * (cvm::pow(current_cv_value.real_value, cv[i_cv]->sup_np));
-      } else {  
-	for (size_t j_elem = 0; j_elem < current_cv_value.size(); ++j_elem) 
-	  input_tensor[0][l++] = cv[i_cv]->sup_coeff * current_cv_value[j_elem];
-      }
-    }
+    for (size_t i= 0; i < pos.size(); ++i) 
+	input_tensor[0][i] = pos[i];
   }
-    */
-
-  /*
-  if (use_gpu) 
-    input_tensor = input_tensor.to(torch::kCUDA);
-  */
 
   std::vector<torch::jit::IValue> inputs={input_tensor};
 
   // evaluate the value of function
   nn_outputs = nn.forward(inputs).toTensor()[0][m_output_index];
 
-  input_grad = torch::autograd::grad({nn_outputs}, {input_tensor})[0][0];
+  torch::Tensor input_grad = torch::autograd::grad({nn_outputs}, {input_tensor})[0][0];
 
-  /*
-  if (use_gpu)
-    input_grad = input_grad.to(torch::kCPU);
-  */
+  for (size_t i=0; i < pos.size(); i ++)
+    grad[i] = input_grad[i].item<double>();
 
   x = nn_outputs.item<double>() ;
 
@@ -119,51 +101,11 @@ void colvar::torchANN::calc_value() {
 }
 
 void colvar::torchANN::calc_gradients() {
-  /*
-  for (size_t i_cv = 0; i_cv < cv.size(); ++i_cv) {
-    cv[i_cv]->calc_gradients();
-    if (cv[i_cv]->is_enabled(f_cvc_explicit_gradient)) {
-      const cvm::real factor_polynomial = getPolynomialFactorOfCVGradient(i_cv);
-      // get the initial index of this cvc
-      size_t l = cvc_indices[i_cv];
-      for (size_t j_elem = 0; j_elem < cv[i_cv]->value().size(); ++j_elem) {
-	// get derivative of neural network wrt its input 
-	const cvm::real factor = input_grad[l+j_elem].item<double>();
-	for (size_t k_ag = 0 ; k_ag < cv[i_cv]->atom_groups.size(); ++k_ag) {
-	  for (size_t l_atom = 0; l_atom < (cv[i_cv]->atom_groups)[k_ag]->size(); ++l_atom) {
-	    (*(cv[i_cv]->atom_groups)[k_ag])[l_atom].grad = factor_polynomial * factor * (*(cv[i_cv]->atom_groups)[k_ag])[l_atom].grad;
-	  }
-	}
-      }
-    }
-  }
-  */
 }
 
 void colvar::torchANN::apply_force(colvarvalue const &force) {
-  /*
 
-  for (size_t i_cv = 0; i_cv < cv.size(); ++i_cv) {
-    // If this CV uses explicit gradients, then atomic gradients is already calculated
-    // We can apply the force to atom groups directly
-    if (cv[i_cv]->is_enabled(f_cvc_explicit_gradient)) {
-      for (size_t k_ag = 0 ; k_ag < cv[i_cv]->atom_groups.size(); ++k_ag) {
-        (cv[i_cv]->atom_groups)[k_ag]->apply_colvar_force(force.real_value);
-      }
-    } else {
-      const colvarvalue& current_cv_value = cv[i_cv]->value();
-      colvarvalue cv_force(current_cv_value);
-      cv_force.reset();
-      const cvm::real factor_polynomial = getPolynomialFactorOfCVGradient(i_cv);
-      // get the initial index of this cvc
-      size_t l = cvc_indices[i_cv];
-      for (size_t j_elem = 0; j_elem < current_cv_value.size(); ++j_elem) {
-	cv_force[j_elem] = factor_polynomial * input_grad[l+j_elem].item<double>() * force.real_value;
-      }
-      cv[i_cv]->apply_force(cv_force);
-    }
-  }
-  */
+  cvm::main()->proxy->colvar_forces += grad * force.real_value ;
 }
 
 // Nearest-image convection is handled in the same way as in colvar::distance_z

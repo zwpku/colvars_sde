@@ -260,6 +260,8 @@ protected:
   /// Update the description string based on name and type
   int update_description();
 
+  cvm::vector1d<cvm::real> pos;
+
   /// Record the type of this class as well as those it is derived from
   std::vector<std::string> function_types;
 
@@ -339,9 +341,9 @@ protected:
     // 1d tensor, concatenation of values of sub-cvcs
     torch::Tensor input_tensor;
     torch::Tensor nn_outputs;
-    torch::Tensor input_grad;
-    // record the initial index of of sub-cvcs in input_tensor
-    std::vector<int> cvc_indices;
+
+    cvm::vector1d<cvm::real> grad;
+
 public:
     torchANN(std::string const &conf);
     virtual ~torchANN();

@@ -297,6 +297,7 @@ int colvar::cvc::set_param(std::string const &param_name,
 
 void colvar::cvc::read_data()
 {
+  pos = cvm::main()->proxy->get_positions();
 }
 
 
