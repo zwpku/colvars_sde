@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <cerrno>
 #include <iostream>
+#include <cstdlib>
 
 #include "colvarproxy_sde.h"
 #include "colvarproxy_sde_version.h"
@@ -135,12 +136,14 @@ void colvarproxy_sde::fatal_error (std::string const &message)
   if (!cvm::debug())
     log("If this error message is unclear, "
 	"try recompiling with -DCOLVARS_DEBUG.\n");
-  cvm::error("Error in collective variables module.\n");
+  std::cout << "Error in collective variables module.\n" << std::endl;
+  std::exit(1); 
 }
 
 void colvarproxy_sde::exit (std::string const &message)
 {
-  cvm::error("exit: " + message + "\n");
+  std::cout << message << std::endl;
+  std::exit(1); 
 }
 
 
