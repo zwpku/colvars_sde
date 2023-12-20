@@ -1046,7 +1046,6 @@ int colvarmodule::update_engine_parameters()
     cvm::log("Current simulation parameters: initial step = " + cvm::to_str(it) +
              ", integration timestep = " + cvm::to_str(dt()) + "\n");
   }
-  cvm::log("Updating atomic parameters (masses, charges, etc).\n");
   for (std::vector<colvar *>::iterator cvi = variables()->begin(); cvi != variables()->end();
        cvi++) {
     (*cvi)->setup();
