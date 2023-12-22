@@ -5,7 +5,7 @@ MAIN_LIB = ./src/main.o
 CXXFLAGS := -std=c++11 -pedantic -g -O2 -fPIC
 
 TORCHDIR = /home/numerik/bzfzhang/local/libtorch
-#TORCHDIR = /home/wei/local/libtorch
+TORCHDIR = /home/wei/local/libtorch
 TORCHINCFLAGS = -I$(TORCHDIR)/include -I$(TORCHDIR)/include/torch/csrc/api/include
 EXTRACOLVARSFLAGS = -std=c++17 -DTORCH $(TORCHINCFLAGS)
 EXTRALINKLIBS = -Wl,-rpath,$(TORCHDIR)/lib -L$(TORCHDIR)/lib -ltorch -ltorch_cpu -lc10
