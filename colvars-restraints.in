@@ -6,9 +6,6 @@ colvar {
   lowerBoundary -2.0
   upperBoundary 2.0
   width 0.05
-  extendedLagrangian on
-  extendedFluctuation 0.2
-  extendedTimeConstant 1.0
 
   torchann {
     modelFile identity.pt
@@ -18,5 +15,8 @@ colvar {
 
 harmonic {
   colvars d
+  outputEnergy on
+  centers 0.0
+  forceConstant 1.0
 }
 

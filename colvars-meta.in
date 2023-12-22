@@ -6,9 +6,6 @@ colvar {
   lowerBoundary -2.0
   upperBoundary 2.0
   width 0.05
-  extendedLagrangian on
-  extendedFluctuation 0.2
-  extendedTimeConstant 1.0
 
   torchann {
     modelFile identity.pt
@@ -16,8 +13,9 @@ colvar {
   }
 }
 
-abf {
+metadynamics {
   colvars d
-  fullSamples	1000
+  hillWeight 0.2
+  hillWidth 0.5
 }
 
