@@ -1,6 +1,7 @@
 COLVARS_LIB = ./colvars/src/libcolvars.a
 COLVARS_SRC_DIR = ./colvars/src
 MAIN_LIB = ./src/main.o
+POTENTIAL_LIB = ./src/potentials.o
 
 CXXFLAGS := -std=c++11 -pedantic -g -O2 -fPIC
 
@@ -15,11 +16,14 @@ COLVARS_DEBUG=
 
 default: main
 
-main: 	$(MAIN_LIB) $(COLVARS_LIB) 
-	g++ -o $@ $<  $(COLVARS_LIB) $(EXTRALINKLIBS)
+main: 	$(MAIN_LIB) $(POTENTIAL_LIB) $(COLVARS_LIB) 
+	g++ -o $@ $< $(POTENTIAL_LIB) $(COLVARS_LIB) $(EXTRALINKLIBS) 
 
 $(MAIN_LIB): ./src/main.cpp
 	make -C ./src main.o
+
+$(POTENTIAL_LIB): ./src/potentials.cpp
+	make -C ./src potentials.o
 
 $(COLVARS_LIB):
 	COLVARS_DEBUG=$(COLVARS_DEBUG) EXTRACOLVARSFLAGS="$(EXTRACOLVARSFLAGS)" make -C $(COLVARS_SRC_DIR) libcolvars.a -j4
