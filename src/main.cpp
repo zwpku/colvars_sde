@@ -66,7 +66,12 @@ int main(int argc, char ** argv)
      pot_func = new Gaussian2d;
   else if (potential_name == "dw2d")
      pot_func = new DW2d;
-  else {
+  else if (potential_name == "mb")
+     pot_func = new MuellerBrown;
+  else if (potential_name == "stiff2d")
+     pot_func = new Stiff2d;
+  else 
+  {
     std::cerr << "Error: no such potential: " << potential_name << std::endl ;
     exit(1);
   }
