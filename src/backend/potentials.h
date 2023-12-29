@@ -7,12 +7,17 @@
 class potential_function 
 {
   public:
-    std::string name;
-    int dim;
     potential_function();
     virtual void init()=0;
     virtual void get_force(std::vector<double> &, std::vector<double> &)=0;
     virtual ~potential_function();
+    void init_state(std::vector<double> &);
+    inline int dim() {
+      return n_dim;
+    }
+  protected:
+    std::string name;
+    int n_dim;
 };
 
 class Gaussian2d: public potential_function {
@@ -21,6 +26,7 @@ class Gaussian2d: public potential_function {
     virtual void init();
     virtual void get_force(std::vector<double> &, std::vector<double> &);
     virtual ~Gaussian2d();
+    void init_state(std::vector<double> &);
 };
 
 class DW2d: public potential_function {
@@ -29,6 +35,7 @@ class DW2d: public potential_function {
     virtual void init();
     virtual void get_force(std::vector<double> &, std::vector<double> &);
     virtual ~DW2d();
+    void init_state(std::vector<double> &);
 };
 
 class Stiff2d: public potential_function {
@@ -36,6 +43,7 @@ class Stiff2d: public potential_function {
     Stiff2d();
     virtual void init();
     virtual void get_force(std::vector<double> &, std::vector<double> &);
+    void init_state(std::vector<double> &);
     virtual ~Stiff2d();
   private:
     double stiff_eps;
@@ -46,6 +54,7 @@ class MuellerBrown: public potential_function {
     MuellerBrown();
     virtual void init();
     virtual void get_force(std::vector<double> &, std::vector<double> &);
+    void init_state(std::vector<double> &);
     virtual ~MuellerBrown();
 
   private:

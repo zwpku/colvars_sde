@@ -3,12 +3,13 @@
 #include "colvarparse.h"
 #include <iostream>
 #include <fstream>
+#include <unistd.h>
 
 #include "potentials.h"
 
 double temp, delta_t;
-int seed, n_steps, dim;
-std::string colvar_config_filename, potential_name;
+int seed, n_steps, output_freq, dim;
+std::string colvar_config_filename, potential_name, prefix;
 
 void parse_input(char const  * config_filename)
 {
@@ -28,10 +29,12 @@ void parse_input(char const  * config_filename)
   parse->get_keyval(conf, "temp", temp, 300.0, colvarparse::parse_silent);
   parse->get_keyval(conf, "delta_t", delta_t, 0.1, colvarparse::parse_silent);
   parse->get_keyval(conf, "seed", seed, 10, colvarparse::parse_silent);
-  parse->get_keyval(conf, "dim", dim, 2, colvarparse::parse_silent);
+  //parse->get_keyval(conf, "dim", dim, 2, colvarparse::parse_silent);
   parse->get_keyval(conf, "step", n_steps, 0, colvarparse::parse_silent);
   parse->get_keyval(conf, "colvars", colvar_config_filename, "", colvarparse::parse_silent);
   parse->get_keyval(conf, "potential", potential_name, "", colvarparse::parse_silent);
+  parse->get_keyval(conf, "outputFreq", output_freq, -1, colvarparse::parse_silent);
+  parse->get_keyval(conf, "outputPrefix", prefix, "", colvarparse::parse_silent);
 
   std::cout << "temp=" << temp << std::endl;
   std::cout << "delta_t=" << delta_t << std::endl;
@@ -39,6 +42,8 @@ void parse_input(char const  * config_filename)
   std::cout << "step=" << n_steps << std::endl;
   std::cout << "colvar_config=" << colvar_config_filename << std::endl;
   std::cout << "potential=" << potential_name << std::endl;
+  std::cout << "outputFreq=" << output_freq << std::endl;
+  std::cout << "outputPrefix=" << prefix<< std::endl;
 }
 
 int main(int argc, char ** argv)
@@ -76,6 +81,9 @@ int main(int argc, char ** argv)
     exit(1);
   }
 
+  pot_func->init();
+  dim = pot_func->dim();
+
   colvarproxy_sde * proxy = nullptr;
 
   if (!colvar_config_filename.empty())
@@ -86,8 +94,6 @@ int main(int argc, char ** argv)
     sde_inp->delta_t = delta_t;
     sde_inp->ld_seed = seed;
     sde_inp->dim = dim;
-
-    std::string prefix; 
 
     proxy = new colvarproxy_sde();
     proxy->init(sde_inp, 0, prefix, colvar_config_filename);
@@ -103,11 +109,33 @@ int main(int argc, char ** argv)
   std::default_random_engine rng;   
   std::normal_distribution<double> normal_distribution(0.0,1.0);
 
-  x[0] = 1.0;
-  x[1] = 0.0;
-
   int i=1;
 
+  std::ostream * output_stream = nullptr;
+
+  if (output_freq > 0)
+  {
+    std::string filename;
+    filename = prefix.size() > 0 ? std::string(prefix + ".txt") : std::string("traj.txt");
+
+    // check whether already exist
+    int exit_code;
+    do {
+      exit_code = access(filename.c_str(), F_OK);
+    } while ((exit_code != 0) && (errno == EINTR));
+
+    if (exit_code == 0) // remove the file if exists
+    {
+      std::rename(filename.c_str(), std::string(filename + ".BAK").c_str());
+      printf("trajectory file %s removed to %s.\n", filename.c_str(), std::string(filename+".BAK").c_str());
+    }
+
+    output_stream = new std::ofstream(filename.c_str(), std::ios::binary);
+
+    (*output_stream) << "#"+std::to_string(dim) << "\n";
+  }
+
+  pot_func->init_state(x);
   for (int step=0 ; step < n_steps; step ++)
   {
     if (step == (n_steps / 10 * i))
@@ -115,19 +143,31 @@ int main(int argc, char ** argv)
 	printf("Step=%d, %.1f%% finished.\n", step, i * 10.0);
 	i++;
       }
+
+    if ((output_freq > 0) && (step % output_freq == 0))
+    {
+      output_stream->setf(std::ios::scientific, std::ios::floatfield);
+      (*output_stream) << step << " ";
+      for (int j = 0 ; j < dim; j ++)
+	(*output_stream) << x[j] << ' ';
+      (*output_stream) << "\n";
+    }
+
     pot_func->get_force(x, grad);
 
-    r = normal_distribution(rng);
-    x[0] += -1.0 * grad[0] * delta_t + coeff * r;
-    r = normal_distribution(rng);
-    x[1] += -1.0 * grad[1] * delta_t + coeff * r;
+    for (int j=0; j < dim; j++)
+    {
+      r = normal_distribution(rng);
+      x[j] += -1.0 * grad[j] * delta_t + coeff * r;
+    }
 
     if (proxy)
     {
       proxy->update_data(step);
       proxy->calculateForces(x, bf);
-      x[0] += bf[0] * delta_t ;
-      x[1] += bf[1] * delta_t ;
+
+      for (int j=0; j < dim; j++)
+	x[j] += bf[j] * delta_t ;
     }
   }
 
@@ -139,6 +179,12 @@ int main(int argc, char ** argv)
 
   delete pot_func;
   pot_func = nullptr;
+
+  if (output_stream)
+  {
+    delete output_stream;
+    output_stream = nullptr;
+  }
 
   return 0;
 }

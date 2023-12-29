@@ -10,11 +10,22 @@ potential_function::~potential_function()
 {
 }
 
+void potential_function::init_state(std::vector<double> &x) 
+{
+  std::fill(x.begin(), x.end(), 0.0);
+}
+
 // Gaussian in x and y 
 void Gaussian2d::init()
 {
   name = "Gaussian 2d";
-  dim = 2;
+  n_dim = 2;
+}
+
+void Gaussian2d::init_state(std::vector<double> &x)
+{
+  x[0] = 1.0;
+  x[1] = 0.0;
 }
 
 void Gaussian2d::get_force (std::vector<double> &x, std::vector<double> &grad)
@@ -38,8 +49,14 @@ DW2d::DW2d()
 void DW2d::init()
   {
     name = "Double well in x, Gaussian in y";
-    dim = 2;
+    n_dim = 2;
   }
+
+void DW2d::init_state(std::vector<double> &x)
+{
+    x[0] = 1.0;
+    x[0] = 0.0;
+}
 
 void DW2d::get_force(std::vector<double> &x, std::vector<double> &grad)
 {
@@ -60,8 +77,14 @@ Stiff2d::Stiff2d()
 void Stiff2d::init()
 {
     name = "Stiff potential in 2d";
-    dim = 2;
+    n_dim = 2;
     stiff_eps = 0.5;
+}
+
+void Stiff2d::init_state(std::vector<double> &x)
+{
+  x[0] = -1.0;
+  x[1] = 0.0;
 }
 
 void Stiff2d::get_force(std::vector<double> &x, std::vector<double> &grad)
@@ -82,7 +105,13 @@ MuellerBrown::MuellerBrown()
 void MuellerBrown::init()
 {
     name = "Mueller-Brown potential in 2d";
-    dim = 2;
+    n_dim = 2;
+}
+
+void MuellerBrown::init_state(std::vector<double> &x)
+{
+  x[0] = -1.0;
+  x[1] = 1.0;
 }
 
 void MuellerBrown::get_force(std::vector<double> &x, std::vector<double> &grad)
