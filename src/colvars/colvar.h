@@ -573,6 +573,7 @@ public:
   // list of available collective variable components
 
   // scalar colvar components
+  class coordinate;
   class torchANN;
   class componentDisabled;
 

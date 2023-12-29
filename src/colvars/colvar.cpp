@@ -499,6 +499,7 @@ void colvar::define_component_types()
 {
 //  colvarproxy *proxy = cvm::main()->proxy;
 
+  add_component_type<coordinate>("coordinate component", "coordinate");
 #ifdef TORCH
   add_component_type<torchANN>("CV defined by PyTorch artifical neural network models", "torchANN");
 #endif

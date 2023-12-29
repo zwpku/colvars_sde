@@ -590,3 +590,6 @@
 
   feature_count_[std::string("torchANN colvar component")] = 0;
   feature_paper_map_[std::string("torchANN colvar component")] = "n/a";
+
+  feature_count_[std::string("coordinate component")] = 0;
+  feature_paper_map_[std::string("coordinate colvar component")] = "n/a";

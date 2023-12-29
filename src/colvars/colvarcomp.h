@@ -325,6 +325,21 @@ public:
     virtual void apply_force(colvarvalue const & /* force */) {}
 };
 
+class colvar::coordinate
+  : public colvar::cvc
+{
+protected:
+    // the index of coordinate component
+    size_t index;
+    cvm::vector1d<cvm::real> grad;
+
+public:
+    coordinate(std::string const &conf);
+    virtual ~coordinate();
+    virtual void calc_value();
+    virtual void calc_gradients();
+    virtual void apply_force(colvarvalue const &force);
+};
 
 
 #ifdef TORCH
