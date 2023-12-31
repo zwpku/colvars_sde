@@ -4,14 +4,21 @@
 #include <string>
 #include <vector>
 
+class generic_cv
+{
+  public:
+    virtual double value(std::vector<double> &)=0;
+    virtual void grad(std::vector<double> &, std::vector<double> &)=0;
+};
+
 class potential_function 
 {
   public:
     potential_function();
-    virtual void init()=0;
     virtual void get_force(std::vector<double> &, std::vector<double> &)=0;
-    virtual ~potential_function();
-    void init_state(std::vector<double> &);
+    virtual void init_state(std::vector<double> &);
+    generic_cv * empirical_cv;
+    ~potential_function();
     inline int dim() {
       return n_dim;
     }
@@ -20,31 +27,37 @@ class potential_function
     int n_dim;
 };
 
+
 class Gaussian2d: public potential_function {
   public:
     Gaussian2d();
-    virtual void init();
     virtual void get_force(std::vector<double> &, std::vector<double> &);
-    virtual ~Gaussian2d();
+    ~Gaussian2d();
     void init_state(std::vector<double> &);
 };
 
 class DW2d: public potential_function {
   public:
     DW2d();
-    virtual void init();
     virtual void get_force(std::vector<double> &, std::vector<double> &);
     virtual ~DW2d();
     void init_state(std::vector<double> &);
+
 };
 
 class Stiff2d: public potential_function {
   public:
     Stiff2d();
-    virtual void init();
     virtual void get_force(std::vector<double> &, std::vector<double> &);
     void init_state(std::vector<double> &);
     virtual ~Stiff2d();
+
+    class cv: public generic_cv{
+      public:
+	double value(std::vector<double> &);
+	void grad(std::vector<double> &, std::vector<double> &);
+    };
+
   private:
     double stiff_eps;
 };
@@ -52,7 +65,6 @@ class Stiff2d: public potential_function {
 class MuellerBrown: public potential_function {
   public:
     MuellerBrown();
-    virtual void init();
     virtual void get_force(std::vector<double> &, std::vector<double> &);
     void init_state(std::vector<double> &);
     virtual ~MuellerBrown();

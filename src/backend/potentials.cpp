@@ -4,22 +4,21 @@
 
 potential_function::potential_function() 
 {
+  empirical_cv = nullptr;
 }
 
 potential_function::~potential_function() 
 {
+  if (empirical_cv)
+  {
+    delete empirical_cv;
+    empirical_cv = nullptr;
+  }
 }
 
 void potential_function::init_state(std::vector<double> &x) 
 {
   std::fill(x.begin(), x.end(), 0.0);
-}
-
-// Gaussian in x and y 
-void Gaussian2d::init()
-{
-  name = "Gaussian 2d";
-  n_dim = 2;
 }
 
 void Gaussian2d::init_state(std::vector<double> &x)
@@ -34,9 +33,13 @@ void Gaussian2d::get_force (std::vector<double> &x, std::vector<double> &grad)
   grad[1] = x[1];
 }
 
+
 Gaussian2d::Gaussian2d()
 {
+  name = "Gaussian 2d";
+  n_dim = 2;
 }
+
 Gaussian2d::~Gaussian2d()
 {
 }
@@ -44,13 +47,9 @@ Gaussian2d::~Gaussian2d()
 // Double-well in x, Gaussian in y 
 DW2d::DW2d()
 {
+  name = "Double well in x, Gaussian in y";
+  n_dim = 2;
 }
-
-void DW2d::init()
-  {
-    name = "Double well in x, Gaussian in y";
-    n_dim = 2;
-  }
 
 void DW2d::init_state(std::vector<double> &x)
 {
@@ -72,13 +71,10 @@ DW2d::~DW2d()
 
 Stiff2d::Stiff2d()
 {
-}
-
-void Stiff2d::init()
-{
-    name = "Stiff potential in 2d";
-    n_dim = 2;
-    stiff_eps = 0.5;
+  name = "Stiff potential in 2d";
+  n_dim = 2;
+  stiff_eps = 0.5;
+  empirical_cv = new cv();
 }
 
 void Stiff2d::init_state(std::vector<double> &x)
@@ -96,16 +92,22 @@ void Stiff2d::get_force(std::vector<double> &x, std::vector<double> &grad)
 Stiff2d::~Stiff2d()
 {
 }
+
+double Stiff2d::cv::value(std::vector<double> &x)
+{
+  return 0;
+}
+
+void Stiff2d::cv::grad(std::vector<double> &x, std::vector<double> & grad)
+{
+}
+
 // Mueller-Brown potential
 
 MuellerBrown::MuellerBrown()
 {
-}
-
-void MuellerBrown::init()
-{
-    name = "Mueller-Brown potential in 2d";
-    n_dim = 2;
+  name = "Mueller-Brown potential in 2d";
+  n_dim = 2;
 }
 
 void MuellerBrown::init_state(std::vector<double> &x)

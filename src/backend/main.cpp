@@ -1,11 +1,10 @@
 
+#include "potentials.h"
 #include "colvarproxy_sde.h"
 #include "colvarparse.h"
 #include <iostream>
 #include <fstream>
 #include <unistd.h>
-
-#include "potentials.h"
 
 double temp, delta_t;
 int seed, n_steps, output_freq, dim;
@@ -68,20 +67,19 @@ int main(int argc, char ** argv)
   potential_function *pot_func= nullptr;
 
   if (potential_name == "gaussian2d")
-     pot_func = new Gaussian2d;
+     pot_func = new Gaussian2d();
   else if (potential_name == "dw2d")
-     pot_func = new DW2d;
+     pot_func = new DW2d();
   else if (potential_name == "mb")
-     pot_func = new MuellerBrown;
+     pot_func = new MuellerBrown();
   else if (potential_name == "stiff2d")
-     pot_func = new Stiff2d;
+     pot_func = new Stiff2d();
   else 
   {
     std::cerr << "Error: no such potential: " << potential_name << std::endl ;
     exit(1);
   }
 
-  pot_func->init();
   dim = pot_func->dim();
 
   colvarproxy_sde * proxy = nullptr;
@@ -94,6 +92,7 @@ int main(int argc, char ** argv)
     sde_inp->delta_t = delta_t;
     sde_inp->ld_seed = seed;
     sde_inp->dim = dim;
+    sde_inp->empirical_cv = pot_func->empirical_cv;
 
     proxy = new colvarproxy_sde();
     proxy->init(sde_inp, 0, prefix, colvar_config_filename);
