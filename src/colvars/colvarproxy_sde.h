@@ -58,6 +58,7 @@ public:
   void fatal_error (std::string const &message);
   /// Print a message to the main log and exit normally
   void exit (std::string const &message);
+
 };
 
 #endif

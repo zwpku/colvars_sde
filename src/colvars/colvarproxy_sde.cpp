@@ -28,8 +28,12 @@ void colvarproxy_sde::init(t_inputrec *ir, int64_t step,
 
   angstrom_value_ = 1.0;
 
+  pot_name = ir->pot_name;
+
   // Retrieve the number of colvar atoms
   n_dim=ir->dim;
+
+  empirical_cv=ir->empirical_cv;
 
   positions.resize(n_dim);
   colvar_forces.resize(n_dim);

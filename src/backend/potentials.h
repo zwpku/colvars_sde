@@ -4,11 +4,13 @@
 #include <string>
 #include <vector>
 
+#include "colvartypes.h"
+
 class generic_cv
 {
   public:
-    virtual double value(std::vector<double> &)=0;
-    virtual void grad(std::vector<double> &, std::vector<double> &)=0;
+    virtual double value(cvm::vector1d<cvm::real> &)=0;
+    virtual void grad(cvm::vector1d<cvm::real> &,  cvm::vector1d<cvm::real>&)=0;
 };
 
 class potential_function 
@@ -21,6 +23,9 @@ class potential_function
     ~potential_function();
     inline int dim() {
       return n_dim;
+    }
+    inline std::string get_name() {
+      return name;
     }
   protected:
     std::string name;
@@ -54,8 +59,8 @@ class Stiff2d: public potential_function {
 
     class cv: public generic_cv{
       public:
-	double value(std::vector<double> &);
-	void grad(std::vector<double> &, std::vector<double> &);
+	double value(cvm::vector1d<cvm::real> &);
+	void grad(cvm::vector1d<cvm::real> &, cvm::vector1d<cvm::real> &);
     };
 
   private:

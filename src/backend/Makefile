@@ -4,7 +4,7 @@ main.o: main.cpp
 	g++ -c $< -pedantic -I$(COLVARS_SRC_DIR) -I./
 
 potentials.o: potentials.cpp
-	g++ -c $< -pedantic 
+	g++ -c $< -pedantic -I$(COLVARS_SRC_DIR) -I./
 
 clean: 
 	rm -f *.o

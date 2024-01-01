@@ -93,12 +93,12 @@ Stiff2d::~Stiff2d()
 {
 }
 
-double Stiff2d::cv::value(std::vector<double> &x)
+double Stiff2d::cv::value(cvm::vector1d<cvm::real> &x)
 {
   return 0;
 }
 
-void Stiff2d::cv::grad(std::vector<double> &x, std::vector<double> & grad)
+void Stiff2d::cv::grad(cvm::vector1d<cvm::real> &x, cvm::vector1d<cvm::real> & grad)
 {
 }
 

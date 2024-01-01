@@ -5,6 +5,7 @@
 
 struct t_inputrec 
 {
+    std::string pot_name;
     double delta_t;
     double ref_t;
     int64_t ld_seed;

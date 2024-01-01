@@ -88,6 +88,7 @@ int main(int argc, char ** argv)
   {
     t_inputrec *sde_inp = new t_inputrec;
 
+    sde_inp->pot_name = pot_func->get_name();
     sde_inp->ref_t = temp;
     sde_inp->delta_t = delta_t;
     sde_inp->ld_seed = seed;

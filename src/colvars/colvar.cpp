@@ -497,9 +497,8 @@ int colvar::init_components_type(const std::string& conf, const char* def_config
 
 void colvar::define_component_types()
 {
-//  colvarproxy *proxy = cvm::main()->proxy;
-
   add_component_type<coordinate>("coordinate component", "coordinate");
+  add_component_type<empiricalcv>("empiricalcv component", "empiricalcv");
 #ifdef TORCH
   add_component_type<torchANN>("CV defined by PyTorch artifical neural network models", "torchANN");
 #endif

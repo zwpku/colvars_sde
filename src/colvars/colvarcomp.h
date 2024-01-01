@@ -341,6 +341,20 @@ public:
     virtual void apply_force(colvarvalue const &force);
 };
 
+class colvar::empiricalcv
+  : public colvar::cvc
+{
+protected:
+    cvm::vector1d<cvm::real> grad;
+
+public:
+    empiricalcv(std::string const &conf);
+    virtual ~empiricalcv();
+    virtual void calc_value();
+    virtual void calc_gradients();
+    virtual void apply_force(colvarvalue const &force);
+};
+
 
 #ifdef TORCH
 // only when LibTorch is available

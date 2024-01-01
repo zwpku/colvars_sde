@@ -10,6 +10,7 @@
 #ifndef COLVARPROXY_SYSTEM_H
 #define COLVARPROXY_SYSTEM_H
 
+#include "potentials.h"
 
 /// Methods for accessing the simulation system (PBCs, integrator, etc)
 class colvarproxy_system {
@@ -123,14 +124,26 @@ public:
     return positions;
   }
 
+  inline generic_cv * get_empirical_cv() const {
+    return empirical_cv;
+  }
+
+  inline std::string get_pot_name() const {
+    return pot_name;
+  }
+
   cvm::vector1d<cvm::real> colvar_forces;
 
 protected:
+
+  std::string pot_name;
 
   //! Total number of Colvars atoms
   size_t n_dim = 0;
 
   cvm::vector1d<cvm::real> positions;
+
+  generic_cv * empirical_cv;
 
   /// Next value of lambda to be sent to back-end
   cvm::real cached_alch_lambda;

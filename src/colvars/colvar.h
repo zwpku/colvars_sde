@@ -574,6 +574,7 @@ public:
 
   // scalar colvar components
   class coordinate;
+  class empiricalcv;
   class torchANN;
   class componentDisabled;
 
