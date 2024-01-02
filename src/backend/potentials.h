@@ -3,6 +3,8 @@
 
 #include <string>
 #include <vector>
+#include <map>
+#include <functional>
 
 #include "colvartypes.h"
 
@@ -82,5 +84,11 @@ class MuellerBrown: public potential_function {
     const double xc[4]={1.0, 0, -0.5, -1.0};
     const double yc[4]={0.0, 0.5, 1.5, 1.0};
 };
+
+extern std::map<std::string, std::function<potential_function * ()>> global_potential_map;
+extern std::map<std::string, std::string> global_potential_desc_map;
+
+template <typename pot_class_name> void add_potential(char const * description, char const * config_key);
+void define_potentials();
 
 #endif

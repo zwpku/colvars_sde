@@ -2,6 +2,21 @@
 #include <iostream>
 #include <math.h>
 
+std::map<std::string, std::function<potential_function * ()>> global_potential_map = std::map<std::string, std::function<potential_function * ()>>() ;
+std::map<std::string, std::string> global_potential_desc_map = std::map<std::string, std::string>() ;
+
+template <typename pot_class_name>
+void add_potential(char const * description, char const * config_key)
+{
+  if (global_potential_map.count(config_key) == 0) {
+    global_potential_map[config_key] = []() {
+      return new pot_class_name();
+    };
+    global_potential_desc_map[config_key] = std::string(description);
+    std::cout << config_key << " " << description << std::endl;
+  }
+}
+
 potential_function::potential_function() 
 {
   empirical_cv = nullptr;
@@ -132,4 +147,12 @@ void MuellerBrown::get_force(std::vector<double> &x, std::vector<double> &grad)
 
 MuellerBrown::~MuellerBrown()
 {
+}
+
+void define_potentials()
+{
+  add_potential<Gaussian2d>("Gaussian 2d", "gaussian2d");
+  add_potential<DW2d>("double-well potential in 2d", "dw2d");
+  add_potential<Stiff2d>("stiff potential in 2d", "stiff2d");
+  add_potential<MuellerBrown>("Mueller-Brown potential in 2d", "mb");
 }

@@ -16,7 +16,9 @@
 
 colvar::empiricalcv::empiricalcv(std::string const &conf): cvc(conf) {
 
-  if (cvm::main()->proxy->get_empirical_cv() == nullptr)
+  empirical_cv = cvm::main()->proxy->get_empirical_cv();
+
+  if (empirical_cv == nullptr)
   {
     cvm::error("Error: empirical cv not defined in potential: " + cvm::main()->proxy->get_pot_name() + ".\n");
   }
@@ -35,7 +37,7 @@ colvar::empiricalcv::~empiricalcv() {
 }
 
 void colvar::empiricalcv::calc_value() {
-  x = cvm::main()->proxy->get_empirical_cv()->value(pos);
+  x = empirical_cv->value(pos);
 }
 
 void colvar::empiricalcv::calc_gradients() {
@@ -43,7 +45,7 @@ void colvar::empiricalcv::calc_gradients() {
 
 void colvar::empiricalcv::apply_force(colvarvalue const &force) {
 
-  cvm::main()->proxy->get_empirical_cv()->grad(pos, grad);
+  empirical_cv->grad(pos, grad);
 
   cvm::main()->proxy->colvar_forces += grad * force.real_value ;
 }

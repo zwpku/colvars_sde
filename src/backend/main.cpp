@@ -10,6 +10,7 @@ double temp, delta_t;
 int seed, n_steps, output_freq, dim;
 std::string colvar_config_filename, potential_name, prefix;
 
+
 void parse_input(char const  * config_filename)
 {
   colvarparse * parse = new colvarparse(); // Parsing object for global options
@@ -62,10 +63,28 @@ int main(int argc, char ** argv)
 
   std::vector<double> x(2), grad(2), bf(2);
 
+  define_potentials();
+
   parse_input(argv[1]);
 
   potential_function *pot_func= nullptr;
 
+  if (global_potential_map.count(potential_name) == 1)
+  {
+    pot_func = global_potential_map[potential_name]();
+  }
+  else 
+  {
+    std::cerr << "Error: no such potential: " << potential_name << std::endl ;
+    std::string msg = "Currently available potentials are: \n";
+    for (auto it = global_potential_desc_map.begin(); it != global_potential_desc_map.end(); ++it) {
+      msg += "	" + it->first + " -- " + it->second + "\n";
+    }
+    std::cout << msg << std::endl;
+    exit(1);
+  }
+
+  /*
   if (potential_name == "gaussian2d")
      pot_func = new Gaussian2d();
   else if (potential_name == "dw2d")
@@ -79,6 +98,7 @@ int main(int argc, char ** argv)
     std::cerr << "Error: no such potential: " << potential_name << std::endl ;
     exit(1);
   }
+  */
 
   dim = pot_func->dim();
 
@@ -109,8 +129,6 @@ int main(int argc, char ** argv)
   std::default_random_engine rng;   
   std::normal_distribution<double> normal_distribution(0.0,1.0);
 
-  int i=1;
-
   std::ostream * output_stream = nullptr;
 
   if (output_freq > 0)
@@ -136,6 +154,7 @@ int main(int argc, char ** argv)
   }
 
   pot_func->init_state(x);
+  int i=1;
   for (int step=0 ; step < n_steps; step ++)
   {
     if (step == (n_steps / 10 * i))

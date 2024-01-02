@@ -10,6 +10,8 @@
 #ifndef COLVARCOMP_H
 #define COLVARCOMP_H
 
+#include "potentials.h"
+
 // Declaration of colvar::cvc base class and derived ones.
 //
 // Future cvc's could be declared on additional header files.
@@ -346,7 +348,7 @@ class colvar::empiricalcv
 {
 protected:
     cvm::vector1d<cvm::real> grad;
-
+    generic_cv * empirical_cv;
 public:
     empiricalcv(std::string const &conf);
     virtual ~empiricalcv();
