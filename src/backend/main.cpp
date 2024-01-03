@@ -104,6 +104,9 @@ int main(int argc, char ** argv)
 
   colvarproxy_sde * proxy = nullptr;
 
+  double boltzman_ = 0.001987191; // = proxy->boltzmann() 
+  coeff = sqrt(2 * boltzman_ * temp * delta_t);
+
   if (!colvar_config_filename.empty())
   {
     t_inputrec *sde_inp = new t_inputrec;
@@ -117,13 +120,9 @@ int main(int argc, char ** argv)
 
     proxy = new colvarproxy_sde();
     proxy->init(sde_inp, 0, prefix, colvar_config_filename);
-    coeff = sqrt(2 * proxy->boltzmann() * temp * delta_t);
   }
-  else 
-  {
-    double boltzman_ = 0.001987191;
-    coeff = sqrt(2 * boltzman_ * temp * delta_t);
-  }
+
+  printf("beta=%.3f\n", 1.0 / (boltzman_ * temp));
 
   // random number generation.
   std::default_random_engine rng;   

@@ -127,8 +127,8 @@ MuellerBrown::MuellerBrown()
 
 void MuellerBrown::init_state(std::vector<double> &x)
 {
-  x[0] = -1.0;
-  x[1] = 1.0;
+  x[0] = -0.6;
+  x[1] = 1.2;
 }
 
 void MuellerBrown::get_force(std::vector<double> &x, std::vector<double> &grad)
