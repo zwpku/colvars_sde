@@ -26,6 +26,8 @@ void parse_input(char const  * config_filename)
       conf.append(line+"\n");
   }
 
+  std::cout << "\n-------Parameters-------" << std::endl;
+
   parse->get_keyval(conf, "temp", temp, 300.0, colvarparse::parse_silent);
   parse->get_keyval(conf, "delta_t", delta_t, 0.1, colvarparse::parse_silent);
   parse->get_keyval(conf, "seed", seed, 10, colvarparse::parse_silent);
@@ -44,6 +46,7 @@ void parse_input(char const  * config_filename)
   std::cout << "potential=" << potential_name << std::endl;
   std::cout << "outputFreq=" << output_freq << std::endl;
   std::cout << "outputPrefix=" << prefix<< std::endl;
+  std::cout << std::endl;
 }
 
 int main(int argc, char ** argv)
@@ -151,6 +154,8 @@ int main(int argc, char ** argv)
 
     (*output_stream) << "#"+std::to_string(dim) << "\n";
   }
+
+  std::cout << "\n-------Sampling-------" << std::endl;
 
   pot_func->init_state(x);
   int i=1;

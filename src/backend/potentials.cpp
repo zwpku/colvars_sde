@@ -13,7 +13,7 @@ void add_potential(char const * description, char const * config_key)
       return new pot_class_name();
     };
     global_potential_desc_map[config_key] = std::string(description);
-    std::cout << config_key << " " << description << std::endl;
+    std::cout << "-" << config_key << ":  " << description << std::endl;
   }
 }
 
@@ -69,7 +69,7 @@ DW2d::DW2d()
 void DW2d::init_state(std::vector<double> &x)
 {
     x[0] = 1.0;
-    x[0] = 0.0;
+    x[1] = 0.0;
 }
 
 void DW2d::get_force(std::vector<double> &x, std::vector<double> &grad)
@@ -151,8 +151,12 @@ MuellerBrown::~MuellerBrown()
 
 void define_potentials()
 {
+  std::cout << "\n------Available Potentials------" << std::endl;
+
   add_potential<Gaussian2d>("Gaussian 2d", "gaussian2d");
   add_potential<DW2d>("double-well potential in 2d", "dw2d");
   add_potential<Stiff2d>("stiff potential in 2d", "stiff2d");
   add_potential<MuellerBrown>("Mueller-Brown potential in 2d", "mb");
+
+  std::cout << std::endl;
 }
