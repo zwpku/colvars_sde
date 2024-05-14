@@ -46,10 +46,10 @@ class Gaussian2d: public potential_function {
 class DW2d: public potential_function {
   public:
     DW2d();
+    double a,b,c;
     virtual void get_force(std::vector<double> &, std::vector<double> &);
     virtual ~DW2d();
     void init_state(std::vector<double> &);
-
 };
 
 class Stiff2d: public potential_function {

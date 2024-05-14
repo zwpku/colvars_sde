@@ -64,6 +64,9 @@ DW2d::DW2d()
 {
   name = "Double well in x, Gaussian in y";
   n_dim = 2;
+  a = 1.0;
+  b = 3.0;
+  c = 0.2;
 }
 
 void DW2d::init_state(std::vector<double> &x)
@@ -72,10 +75,11 @@ void DW2d::init_state(std::vector<double> &x)
     x[1] = 0.0;
 }
 
+// Potential:  1/4 * (x^2-1)^2 + 1/2 * (a+b*exp(-x^2/c)) * y^2
 void DW2d::get_force(std::vector<double> &x, std::vector<double> &grad)
 {
-  grad[0] = x[0] * (x[0]*x[0] - 1.0);
-  grad[1] = x[1];
+  grad[0] = x[0] * (x[0]*x[0] - 1.0) - b*x[1]*x[1]* x[0]/c * exp(-x[0]*x[0]/c);
+  grad[1] = (a+b*exp(-x[0]*x[0]/c)) * x[1] ;
 }
 
 DW2d::~DW2d()

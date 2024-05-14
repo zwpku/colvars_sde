@@ -15,7 +15,7 @@ import yaml
 import argparse
 
 # this line may need to be changed 
-sys.path.append('../../../colvars-finder')
+sys.path.append('../../../../colvars-finder')
 
 from colvarsfinder.core import AutoEncoderTask, EigenFunctionTask, RegAutoEncoderTask
 from colvarsfinder.nn import AutoEncoder, EigenFunctions, RegAutoEncoder, RegModel 
@@ -71,6 +71,17 @@ def show_trajectory(trajectory, x_domain, y_domain, save_fig=True):
 
     if save_fig :
         filename = f"./traj.jpg" 
+        fig.savefig(filename)
+        print (" trajectory plot saved to file: %s" % filename)
+
+def plot_loss(loss_df, model_path, save_fig=True):
+    fig = plt.figure(figsize=(8,7))
+    ax0 = fig.add_subplot(1, 1, 1)
+    loss_df.plot(ax=ax0, lw=2, marker='+')
+    ax0.set_title('Loss', fontsize=20)
+    ax0.set_xlabel('epoch',fontsize=20)
+    if save_fig :
+        filename = f"{model_path}/loss.jpg" 
         fig.savefig(filename)
         print (" trajectory plot saved to file: %s" % filename)
 
@@ -179,10 +190,13 @@ if __name__ == '__main__':
 # train autoencoder
     train_obj.train()
 
-# get cv model
-    cv = train_obj.colvar_model()
-
 # display results
+
+    plot_loss(train_obj.train_loss_df, model_path)
+
     if dim == 2 :
+        # get cv model
+        cv = train_obj.colvar_model()
         plot_cv(cv, args.x_domain, args.y_domain, model_path)
+
 
