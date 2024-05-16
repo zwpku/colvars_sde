@@ -15,7 +15,7 @@ import yaml
 import argparse
 
 # this line may need to be changed 
-sys.path.append('../../../../colvars-finder')
+sys.path.append('../../../../../colvars-finder')
 
 from colvarsfinder.core import AutoEncoderTask, EigenFunctionTask, RegAutoEncoderTask
 from colvarsfinder.nn import AutoEncoder, EigenFunctions, RegAutoEncoder, RegModel 
@@ -189,6 +189,8 @@ if __name__ == '__main__':
 
 # train autoencoder
     train_obj.train()
+
+    train_obj.save_model()
 
 # display results
 

@@ -87,12 +87,14 @@ DW2d::~DW2d()
 }
 
 // Stiff potential 2d  
+//
+// Potential: (x^2-1)^2 + 1/eps * (x^2+y-1)^2
 
 Stiff2d::Stiff2d()
 {
   name = "Stiff potential in 2d";
   n_dim = 2;
-  stiff_eps = 0.5;
+  stiff_eps = 0.3;
   empirical_cv = new cv();
 }
 

@@ -1,5 +1,5 @@
 colvarsTrajFrequency    10000
-colvarsRestartFrequency 10000
+colvarsRestartFrequency 100000
 
 colvar {
   name d
@@ -7,11 +7,11 @@ colvar {
   upperBoundary 2.0
   width 0.05
   extendedLagrangian on
-  extendedFluctuation 0.2
+  extendedFluctuation 0.4
   extendedTimeConstant 1.0
 
   torchann {
-    modelFile identity.pt
+    modelFile scripted_cv_cpu.pt
     m_output_index 0
   }
 }
