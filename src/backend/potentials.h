@@ -19,6 +19,7 @@ class potential_function
 {
   public:
     potential_function();
+    virtual double get_potential(std::vector<double> &)=0;
     virtual void get_force(std::vector<double> &, std::vector<double> &)=0;
     virtual void init_state(std::vector<double> &);
     generic_cv * empirical_cv;
@@ -34,10 +35,10 @@ class potential_function
     int n_dim;
 };
 
-
 class Gaussian2d: public potential_function {
   public:
     Gaussian2d();
+    virtual double get_potential(std::vector<double> &);
     virtual void get_force(std::vector<double> &, std::vector<double> &);
     ~Gaussian2d();
     void init_state(std::vector<double> &);
@@ -48,6 +49,7 @@ class DW2d: public potential_function {
     DW2d();
     double a,b,c;
     virtual void get_force(std::vector<double> &, std::vector<double> &);
+    virtual double get_potential(std::vector<double> &);
     virtual ~DW2d();
     void init_state(std::vector<double> &);
 };
@@ -55,6 +57,7 @@ class DW2d: public potential_function {
 class Stiff2d: public potential_function {
   public:
     Stiff2d();
+    virtual double get_potential(std::vector<double> &);
     virtual void get_force(std::vector<double> &, std::vector<double> &);
     void init_state(std::vector<double> &);
     virtual ~Stiff2d();
@@ -72,6 +75,7 @@ class Stiff2d: public potential_function {
 class MuellerBrown: public potential_function {
   public:
     MuellerBrown();
+    virtual double get_potential(std::vector<double> &);
     virtual void get_force(std::vector<double> &, std::vector<double> &);
     void init_state(std::vector<double> &);
     virtual ~MuellerBrown();
@@ -83,6 +87,17 @@ class MuellerBrown: public potential_function {
     const double A[4]={-200, -100, -170, 15}; 
     const double xc[4]={1.0, 0, -0.5, -1.0};
     const double yc[4]={0.0, 0.5, 1.5, 1.0};
+};
+
+class TripleWellCircle: public potential_function {
+  public:
+    TripleWellCircle();
+    virtual double get_potential(std::vector<double> &);
+    virtual void get_force(std::vector<double> &, std::vector<double> &);
+    void init_state(std::vector<double> &);
+    virtual ~TripleWellCircle();
+  private:
+    double stiff_eps;
 };
 
 extern std::map<std::string, std::function<potential_function * ()>> global_potential_map;

@@ -42,7 +42,12 @@ void Gaussian2d::init_state(std::vector<double> &x)
   x[1] = 0.0;
 }
 
-void Gaussian2d::get_force (std::vector<double> &x, std::vector<double> &grad)
+double Gaussian2d::get_potential(std::vector<double> &x)
+{
+  return 0.5 * (x[0]-1.0)*(x[0]-1.0) + 0.5 * x[1] * x[1];
+}
+
+void Gaussian2d::get_force(std::vector<double> &x, std::vector<double> &grad)
 {
   grad[0] = x[0] - 1.0;
   grad[1] = x[1];
@@ -76,6 +81,11 @@ void DW2d::init_state(std::vector<double> &x)
 }
 
 // Potential:  1/4 * (x^2-1)^2 + 1/2 * (a+b*exp(-x^2/c)) * y^2
+double DW2d::get_potential(std::vector<double> &x)
+{
+  return 0.25 * (x[0]*x[0] - 1.0) * (x[0]*x[0] - 1.0) + 0.5 * (a + b*exp(-x[0]*x[0]/c)) * x[1]*x[1];
+}
+
 void DW2d::get_force(std::vector<double> &x, std::vector<double> &grad)
 {
   grad[0] = x[0] * (x[0]*x[0] - 1.0) - b*x[1]*x[1]* x[0]/c * exp(-x[0]*x[0]/c);
@@ -102,6 +112,11 @@ void Stiff2d::init_state(std::vector<double> &x)
 {
   x[0] = -1.0;
   x[1] = 0.0;
+}
+
+double Stiff2d::get_potential(std::vector<double> &x)
+{
+  return (x[0]*x[0]-1.0) * (x[0]*x[0]-1.0) + 1.0 / stiff_eps * (x[0]*x[0] + x[1]-1) * (x[0]*x[0]+x[1]-1);
 }
 
 void Stiff2d::get_force(std::vector<double> &x, std::vector<double> &grad)
@@ -137,6 +152,19 @@ void MuellerBrown::init_state(std::vector<double> &x)
   x[1] = 1.2;
 }
 
+double MuellerBrown::get_potential(std::vector<double> &x)
+{
+  double s = 0.0, dx, dy;
+
+  for (int i = 0; i<4; i ++)
+  {
+    dx = x[0] - xc[i];
+    dy = x[1] - yc[i];
+    s += A[i] * exp(a[i]*dx*dx + b[i]*dx*dy + c[i]*dy*dy);
+  }
+  return s;
+}
+
 void MuellerBrown::get_force(std::vector<double> &x, std::vector<double> &grad)
 {
   double dx, dy;
@@ -153,6 +181,66 @@ void MuellerBrown::get_force(std::vector<double> &x, std::vector<double> &grad)
 
 MuellerBrown::~MuellerBrown()
 {
+
+}
+
+// Triple-well potential along circle 
+
+TripleWellCircle::TripleWellCircle()
+{
+  name = "triple-well potential along circle";
+  n_dim = 2;
+  stiff_eps = 0.5;
+}
+
+void TripleWellCircle::init_state(std::vector<double> &x)
+{
+  x[0] = 1.0;
+  x[1] = 0.0;
+}
+
+double TripleWellCircle::get_potential(std::vector<double> &x)
+{
+  double theta, r, v1;
+
+  theta = atan2(x[1], x[0]);
+  r = sqrt(x[0]*x[0]+x[1]*x[1]);
+
+  if (theta>PI/3.0)
+    v1 = pow(1-(3*theta/PI-1) * (3*theta/PI-1), 2);
+  else 
+    if (theta <-PI/3.0)
+      v1 = pow(1-(3*theta/PI+1) * (3*theta/PI+1), 2);
+    else 
+      v1 = 1.0/5 * (3-2*cos(3*theta));
+
+  return v1 + 1.0 / stiff_eps*(r-1)*(r-1)+5.0*exp(-5.0*r*r);
+}
+
+void TripleWellCircle::get_force(std::vector<double> &x, std::vector<double> &grad)
+{
+  double theta, r;
+  double dv1_dangle, dv2_dr;
+
+  theta = atan2(x[1], x[0]);
+  r = sqrt(x[0]*x[0]+x[1]*x[1]);
+
+   if (theta>PI/3.0)
+    dv1_dangle = 12.0 / PI * (3*theta/PI-1) * ((3*theta/PI-1)*(3*theta/PI-1)- 1);
+  else 
+    if (theta <-PI/3.0)
+      dv1_dangle = 12.0 / PI * (3*theta/PI+1) * ((3*theta/PI+1)*(3*theta/PI+1)- 1);
+    else 
+      dv1_dangle = 1.2 * sin(3*theta);
+
+  dv2_dr = 2.0 * (r-1) / stiff_eps - 50 * r * exp(-5.0*r*r);
+
+  grad[0] = -1.0 * dv1_dangle * x[1] / (r*r) + dv2_dr * x[0] / r;
+  grad[1] = dv1_dangle * x[0] / (r*r) + dv2_dr * x[1] / r;
+}
+
+TripleWellCircle::~TripleWellCircle()
+{
 }
 
 void define_potentials()
@@ -163,6 +251,7 @@ void define_potentials()
   add_potential<DW2d>("double-well potential in 2d", "dw2d");
   add_potential<Stiff2d>("stiff potential in 2d", "stiff2d");
   add_potential<MuellerBrown>("Mueller-Brown potential in 2d", "mb");
+  add_potential<TripleWellCircle>("triple-well potential along circle", "triple");
 
   std::cout << std::endl;
 }

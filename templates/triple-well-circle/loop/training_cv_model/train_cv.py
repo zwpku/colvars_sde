@@ -199,4 +199,3 @@ if __name__ == '__main__':
         cv = train_obj.colvar_model()
         plot_cv(cv, args.x_domain, args.y_domain, model_path)
 
-
