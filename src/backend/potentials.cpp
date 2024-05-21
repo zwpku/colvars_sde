@@ -38,18 +38,18 @@ void potential_function::init_state(std::vector<double> &x)
 
 void Gaussian2d::init_state(std::vector<double> &x)
 {
-  x[0] = 1.0;
+  x[0] = 0.0;
   x[1] = 0.0;
 }
 
 double Gaussian2d::get_potential(std::vector<double> &x)
 {
-  return 0.5 * (x[0]-1.0)*(x[0]-1.0) + 0.5 * x[1] * x[1];
+  return 0.5 * x[0]*x[0] + 0.5 * x[1] * x[1];
 }
 
 void Gaussian2d::get_force(std::vector<double> &x, std::vector<double> &grad)
 {
-  grad[0] = x[0] - 1.0;
+  grad[0] = x[0];
   grad[1] = x[1];
 }
 
