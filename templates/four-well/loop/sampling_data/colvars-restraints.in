@@ -1,0 +1,22 @@
+colvarsTrajFrequency    10000
+colvarsRestartFrequency 10000
+
+colvar {
+  name d
+  lowerBoundary -2.0
+  upperBoundary 2.0
+  width 0.05
+
+  torchann {
+    modelFile identity.pt
+    m_output_index 0
+  }
+}
+
+harmonic {
+  colvars d
+  outputEnergy on
+  centers 0.0
+  forceConstant 1.0
+}
+

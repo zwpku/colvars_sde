@@ -48,9 +48,18 @@ class DW2d: public potential_function {
   public:
     DW2d();
     double a,b,c;
-    virtual void get_force(std::vector<double> &, std::vector<double> &);
     virtual double get_potential(std::vector<double> &);
+    virtual void get_force(std::vector<double> &, std::vector<double> &);
     virtual ~DW2d();
+    void init_state(std::vector<double> &);
+};
+
+class four_well: public potential_function {
+  public:
+    four_well();
+    virtual double get_potential(std::vector<double> &);
+    virtual void get_force(std::vector<double> &, std::vector<double> &);
+    virtual ~four_well();
     void init_state(std::vector<double> &);
 };
 

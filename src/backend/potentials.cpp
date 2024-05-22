@@ -96,6 +96,34 @@ DW2d::~DW2d()
 {
 }
 
+four_well::four_well()
+{
+  name = "four-well potential";
+  n_dim = 2;
+}
+
+void four_well::init_state(std::vector<double> &x)
+{
+    x[0] = -1.0;
+    x[1] = -1.0;
+}
+
+// Potential:  (x^2-1)^2 + 2 * (y^2-1)^2
+double four_well::get_potential(std::vector<double> &x)
+{
+  return (x[0]*x[0] - 1.0) * (x[0]*x[0] - 1.0) + 2 * (x[1]*x[1] - 1.0) * (x[1]*x[1] - 1.0) ;
+}
+
+void four_well::get_force(std::vector<double> &x, std::vector<double> &grad)
+{
+  grad[0] = 4 * x[0] * (x[0]*x[0] - 1.0) ;
+  grad[1] = 8 * x[1] * (x[1]*x[1] - 1.0) ;
+}
+
+four_well::~four_well()
+{
+}
+
 // Stiff potential 2d  
 //
 // Potential: (x^2-1)^2 + 1/eps * (x^2+y-1)^2
@@ -249,6 +277,7 @@ void define_potentials()
 
   add_potential<Gaussian2d>("Gaussian 2d", "gaussian2d");
   add_potential<DW2d>("double-well potential in 2d", "dw2d");
+  add_potential<four_well>("four-well potential in 2d", "4w");
   add_potential<Stiff2d>("stiff potential in 2d", "stiff2d");
   add_potential<MuellerBrown>("Mueller-Brown potential in 2d", "mb");
   add_potential<TripleWellCircle>("triple-well potential along circle", "triple");
