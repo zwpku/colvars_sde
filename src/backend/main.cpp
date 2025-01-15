@@ -54,6 +54,7 @@ int main(int argc, char ** argv)
   if (argc < 2)
   {
     std::cerr << "Error: parameter file not provided!\n" ;
+    std::cerr << "Usage: ./sde_colvars param_file\n" ;
     exit(1);
   }
   else 
