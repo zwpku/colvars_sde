@@ -2,7 +2,7 @@
 
 The implementation of enhanced sampling algorithms in this package is largely based on modification of the code in [colvars](https://github.com/Colvars/colvars).
 
-#### Build 
+- #### Build: 
 
 1. (Optional) Download [libtorch C++](https://pytorch.org/cppdocs/installing.html) library, in order to allow the use of collective variables (CVs) defined by a TorchScript model. 
 
@@ -29,7 +29,7 @@ once again.
    make install
 ```   
 
-#### Usage 
+- #### Usage:
 
 ```
     colvars_sde params.cfg
