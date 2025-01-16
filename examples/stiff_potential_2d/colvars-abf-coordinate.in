@@ -1,0 +1,22 @@
+colvarsTrajFrequency    10000
+colvarsRestartFrequency 10000
+
+colvar {
+  name d
+  lowerBoundary -1.5
+  upperBoundary 1.5
+  width 0.05
+  extendedLagrangian on
+  extendedFluctuation 0.2
+  extendedTimeConstant 1.0
+
+  coordinate {
+    index 0
+  }
+}
+
+abf {
+  colvars d
+  fullSamples	1000
+}
+
