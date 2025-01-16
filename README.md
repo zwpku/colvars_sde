@@ -29,3 +29,11 @@ once again.
    make install
 ```   
 
+#### Usage 
+
+```
+    colvars_sde params.cfg
+```
+
+An example is provided under [examples/stiff_potential_2d](./examples/stiff_potential_2d).
+
