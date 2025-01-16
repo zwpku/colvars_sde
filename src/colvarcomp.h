@@ -26,7 +26,7 @@
 #include "colvarmodule.h"
 #include "colvar.h"
 
-#ifdef TORCH
+#ifdef COLVARS_TORCH
 #include <torch/torch.h>
 #include <torch/script.h>
 #endif
@@ -358,7 +358,7 @@ public:
 };
 
 
-#ifdef TORCH
+#ifdef COLVARS_TORCH 
 // only when LibTorch is available
 class colvar::torchANN
   : public colvar::cvc
@@ -401,7 +401,7 @@ class colvar::torchANN
 public:
     torchANN(std::string const &conf) : componentDisabled(conf) {}
 };
-#endif // TORCH checking
+#endif // COLVARS_TORCH checking
 
 // metrics functions for cvc implementations
 

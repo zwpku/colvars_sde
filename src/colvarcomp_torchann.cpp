@@ -7,7 +7,7 @@
 // If you wish to distribute your changes, please submit them to the
 // Colvars repository at GitHub.
 
-#ifdef TORCH
+#ifdef COLVARS_TORCH
 
 #include "colvarmodule.h"
 #include "colvar.h"

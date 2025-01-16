@@ -499,7 +499,7 @@ void colvar::define_component_types()
 {
   add_component_type<coordinate>("coordinate component", "coordinate");
   add_component_type<empiricalcv>("empiricalcv component", "empiricalcv");
-#ifdef TORCH
+#ifdef COLVARS_TORCH
   add_component_type<torchANN>("CV defined by PyTorch artifical neural network models", "torchANN");
 #endif
 }

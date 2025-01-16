@@ -12,7 +12,6 @@ The implementation of enhanced sampling algorithms in this package is largely ba
    mkdir build 
    cd build
    cmake ../cmake/CMakeLists.txt
-   
 ```
 
    To enable libtorch support, edit the generated `CMakeCache.txt` file, and set 1) `COLVARS_SDE_TORCH` to `ON` and 2) `Torch_DIR` to the path to libtorch (e.g. path/to/libtorch/share/cmake/Torch). Otherwise, set `COLVARS_SDE_TORCH` to `OFF`. Run 
